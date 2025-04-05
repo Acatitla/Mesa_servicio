@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mesa de Servicio - Reporte de Luminarias</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Mesa de Servicio - Reporte de Luminarias</h1>
+    <form id="reportForm">
+        <input type="text" id="calle" placeholder="Calle" required>
+        <input type="text" id="no_exterior" placeholder="No. Exterior" required>
+        <input type="text" id="referencias" placeholder="Referencias" required>
+        <input type="text" id="colonia" placeholder="Colonia" required>
+        <input type="text" id="solicitante" placeholder="Solicitante" required>
+        <input type="tel" id="telefono" placeholder="Teléfono" required>
+        <select id="origen">
+            <option value="suac">SUAC</option>
+            <option value="officio">Officio</option>
+            <option value="dmu">DMU</option>
+            <option value="emergencia">Emergencia</option>
+            <option value="direccion">Dirección</option>
+            <option value="alcaldia">Alcaldía</option>
+            <option value="zeus">Zeus</option>
+        </select>
+        <button type="submit">Enviar Reporte</button>
+    </form>
+    <h2>Reportes Registrados</h2>
+    <ul id="reportList"></ul>
+    <script src="script.js"></script>
+</body>
+</html>

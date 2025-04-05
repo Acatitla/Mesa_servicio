@@ -1,0 +1,93 @@
+/* Fondo institucional */
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background-color: #f4f4f4;
+    background-image: url('img/img-login-ciber.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    margin: 0;
+    padding: 0;
+    color: #333;
+}
+
+/* Encabezado tipo institucional */
+h1 {
+    background-color: #9f2241;
+    color: white;
+    padding: 20px 10px;
+    margin: 0;
+    text-align: center;
+    font-size: 24px;
+    border-bottom: 4px solid #235b4e;
+}
+
+/* Formulario centrado con sombra */
+form {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+    margin: 30px auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Campos del formulario */
+input, select, button {
+    margin: 8px 0;
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+/* Botón estilo gobierno */
+button {
+    background: #235b4e;
+    color: white;
+    border: 1px solid #235b4e;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s ease;
+}
+
+button:hover {
+    background: #bc955c;
+    border-color: #bc955c;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Lista de reportes */
+#reportList {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 0;
+    list-style: none;
+}
+
+#reportList li {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 12px;
+    margin: 10px 0;
+    border-left: 5px solid #9f2241;
+    border-radius: 4px;
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#reportList button {
+    background: #9f2241;
+    border-color: #9f2241;
+    padding: 6px 10px;
+    font-size: 14px;
+}
+
+#reportList button:hover {
+    background: #235b4e;
+    border-color: #235b4e;
+}
