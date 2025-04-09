@@ -1,66 +1,101 @@
-const form = document.getElementById('reportForm');
-const reportList = document.getElementById('reportList');
-
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const data = {
-        calle: document.getElementById('calle').value,
-        no_exterior: document.getElementById('no_exterior').value,
-        referencias: document.getElementById('referencias').value,
-        colonia: document.getElementById('colonia').value,
-        solicitante: document.getElementById('solicitante').value,
-        telefono: document.getElementById('telefono').value,
-        origen: document.getElementById('origen').value
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('formulario');
+    const reportesDiv = document.getElementById('reportes');
+    const modal = document.getElementById('modalLogin');
+    const cerrarModal = document.getElementById('cerrarModal');
+    const loginBtn = document.getElementById('loginBtn');
+    let idReporteAEliminar = null;
+  
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      try {
+        const res = await fetch('http://localhost:3000/reportes', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert('Reporte guardado');
+          form.reset();
+          cargarReportes();
+        } else {
+          alert(data.error || 'Error al guardar');
+        }
+      } catch (err) {
+        alert('Error al conectar con el servidor');
+      }
+    });
+  
+    async function cargarReportes() {
+      const res = await fetch('http://localhost:3000/reportes');
+      const reportes = await res.json();
+      reportesDiv.innerHTML = '';
+      reportes.forEach(rep => {
+        const div = document.createElement('div');
+        div.className = 'reporte';
+        div.innerHTML = `
+          <strong>${rep.tipo_servicio}</strong><br>
+          <small>${rep.fecha}</small><br>
+          Dirección: ${rep.calle} ${rep.no_exterior || ''}, ${rep.colonia}<br>
+          Solicitante: ${rep.solicitante}<br>
+          ${rep.foto ? `<img src="http://localhost:3000/uploads/${rep.foto}" />` : ''}
+          <button class="eliminar" data-id="${rep.id}">Eliminar</button>
+        `;
+        reportesDiv.appendChild(div);
+      });
+  
+      document.querySelectorAll('.eliminar').forEach(btn => {
+        btn.addEventListener('click', () => {
+          idReporteAEliminar = btn.getAttribute('data-id');
+          modal.style.display = 'block';
+        });
+      });
+    }
+  
+    cerrarModal.onclick = () => {
+      modal.style.display = 'none';
     };
 
-    const res = await fetch('http://localhost:3000/reportes', {
+    document.addEventListener("DOMContentLoaded", function () {
+        const origenSelect = document.getElementById("origen");
+        const folioContainer = document.getElementById("folio-container");
+      
+        function toggleFolioField() {
+          const selectedValue = origenSelect.value;
+          if (selectedValue === "officio" || selectedValue === "dmu") {
+            folioContainer.style.display = "block";
+          } else {
+            folioContainer.style.display = "none";
+          }
+        }
+      
+        origenSelect.addEventListener("change", toggleFolioField);
+        toggleFolioField(); // ejecuta al cargar por si ya hay una opción seleccionada
+      });
+
+  
+    loginBtn.onclick = async () => {
+      const usuario = document.getElementById('usuario').value;
+      const contrasena = document.getElementById('contrasena').value;
+      if (!idReporteAEliminar) return;
+  
+      const res = await fetch('http://localhost:3000/eliminar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    });
-
-    const result = await res.json();
-    if (res.ok) {
-        alert('Reporte enviado');
-        form.reset();
+        body: JSON.stringify({ usuario, contrasena, id: idReporteAEliminar })
+      });
+  
+      const data = await res.json();
+      if (res.ok) {
+        alert('Reporte eliminado');
+        modal.style.display = 'none';
         cargarReportes();
-    } else {
-        alert(result.error);
-    }
-});
-
-async function cargarReportes() {
-    const res = await fetch('http://localhost:3000/reportes');
-    const reportes = await res.json();
-
-    reportList.innerHTML = '';
-    reportes.forEach(rep => {
-        const li = document.createElement('li');
-        li.textContent = `${rep.calle} ${rep.no_exterior} - ${rep.colonia}`;
-        reportList.appendChild(li);
-    });
-}
-
-async function cargarReportes() {
-    const res = await fetch('http://localhost:3000/reportes');
-    const reportes = await res.json();
-
-    console.log(reportes); // Para verificar si llegan los datos
-
-    const reportList = document.getElementById('reportList');
-    reportList.innerHTML = '';
-
-    reportes.forEach(rep => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-            <strong>${rep.calle} ${rep.no_exterior}</strong><br>
-            ${rep.colonia} - ${rep.referencias}<br>
-            Solicitante: ${rep.solicitante} | Tel: ${rep.telefono}<br>
-            Origen: ${rep.origen} | Fecha: ${rep.fecha_registro}
-        `;
-        reportList.appendChild(li);
-    });
-}
-
-cargarReportes();
+      } else {
+        alert(data.error || 'Error de autenticación');
+      }
+    };
+  
+    cargarReportes();
+  });
+  

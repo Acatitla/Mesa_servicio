@@ -1,68 +1,86 @@
 const express = require('express');
 const cors = require('cors');
+const multer = require('multer');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 const app = express();
-app.use(express.json());
+const PORT = 3000;
+
 app.use(cors());
+app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-const dbPath = path.join(__dirname, 'database', 'mesa_servicio.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Error al conectar con SQLite:', err.message);
-    } else {
-        console.log('Conectado a la base de datos SQLite');
-    }
+// Configuración SQLite
+const db = new sqlite3.Database('./reportes.db', (err) => {
+    if (err) return console.error(err.message);
+    console.log('🟢 Conectado a SQLite');
 });
-// Solo una vez, luego puedes borrar esta línea:
-//db.run(`ALTER TABLE reportes ADD COLUMN fecha_registro TEXT`);
 
+// Crear tabla si no existe
+db.run(`CREATE TABLE IF NOT EXISTS reportes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    calle TEXT,
+    no_exterior TEXT,
+    referencias TEXT,
+    colonia TEXT,
+    solicitante TEXT,
+    telefono TEXT,
+    origen TEXT,
+    tipo_servicio TEXT,
+    foto TEXT,
+    fecha TEXT DEFAULT (datetime('now', 'localtime'))
+)`);
 
-db.run(`
-    CREATE TABLE IF NOT EXISTS reportes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        calle TEXT NOT NULL,
-        no_exterior TEXT NOT NULL,
-        referencias TEXT,
-        colonia TEXT NOT NULL,
-        solicitante TEXT NOT NULL,
-        telefono TEXT NOT NULL,
-        origen TEXT NOT NULL,
-        fecha_registro TEXT NOT NULL
-    )
-`);
+// Configuración de multer
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, 'uploads/'),
+    filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
+});
+const upload = multer({ storage });
 
-app.post('/reportes', (req, res) => {
-    const { calle, no_exterior, referencias, colonia, solicitante, telefono, origen } = req.body;
-    const fechaHoy = new Date().toISOString().split('T')[0];
+// Ruta para agregar un reporte
+app.post('/reportes', upload.single('foto'), (req, res) => {
+    const { calle, no_exterior, referencias, colonia, solicitante, telefono, origen, tipo_servicio } = req.body;
+    const foto = req.file ? req.file.filename : null;
 
-    const checkQuery = `
-        SELECT * FROM reportes 
-        WHERE calle = ? AND no_exterior = ? AND DATE(fecha_registro) = ?
-    `;
-    db.get(checkQuery, [calle, no_exterior, fechaHoy], (err, row) => {
-        if (err) return res.status(500).send({ error: 'Error en la validación' });
-        if (row) return res.status(400).send({ error: 'Ya existe un reporte hoy para esta dirección' });
+    // Evitar duplicados por dirección + fecha
+    const checkQuery = `SELECT * FROM reportes WHERE fecha LIKE date('now') AND calle = ? AND colonia = ?`;
+    db.get(checkQuery, [calle, colonia], (err, row) => {
+        if (row) return res.status(400).json({ error: 'Ya existe un reporte con esta dirección hoy' });
 
-        const insertQuery = `
-            INSERT INTO reportes (calle, no_exterior, referencias, colonia, solicitante, telefono, origen, fecha_registro)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-        db.run(insertQuery, [calle, no_exterior, referencias, colonia, solicitante, telefono, origen, new Date().toISOString()], function (err) {
-            if (err) return res.status(500).send({ error: 'Error al insertar' });
-            res.send({ message: 'Reporte agregado', id: this.lastID });
+        const insertQuery = `INSERT INTO reportes (calle, no_exterior, referencias, colonia, solicitante, telefono, origen, tipo_servicio, foto)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        db.run(insertQuery, [calle, no_exterior, referencias, colonia, solicitante, telefono, origen, tipo_servicio, foto], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: 'Reporte guardado', id: this.lastID });
         });
     });
 });
 
+// Ruta para obtener reportes
 app.get('/reportes', (req, res) => {
-    db.all('SELECT * FROM reportes', [], (err, rows) => {
+    db.all('SELECT * FROM reportes', (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(rows);
     });
 });
 
-app.listen(3000, () => {
-    console.log('Servidor corriendo en http://localhost:3000');
+// Ruta protegida para eliminar reportes
+app.post('/eliminar', (req, res) => {
+    const { usuario, contrasena, id } = req.body;
+
+    if (usuario !== 'oro4' || contrasena !== 'luminarias') {
+        return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    db.run('DELETE FROM reportes WHERE id = ?', [id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Reporte eliminado' });
+    });
+});
+
+// Iniciar servidor
+app.listen(PORT, () => {
+    console.log(`✅ Servidor corriendo en http://localhost:${PORT}`);
 });
