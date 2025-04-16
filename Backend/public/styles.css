@@ -1,52 +1,73 @@
+/* Estilos generales */
 body {
   font-family: 'Segoe UI', sans-serif;
-  background-color: #f0f5ef;
-  color: #222;
+  background-color: #f0f5ef; /* Fondo gris claro */
+  color: #222; /* Color de texto */
   padding: 20px;
   max-width: 900px;
   margin: auto;
+  box-sizing: border-box;
 }
 
 h1 {
   text-align: center;
-  color: #0b3d0b;
+  color: #0b3d0b; /* Verde oscuro */
+  font-size: 2rem;
+  margin-bottom: 30px;
 }
 
 form {
-  background-color: #ffffff;
-  padding: 20px;
-  border: 2px solid #0b3d0b;
-  border-radius: 10px;
+  background-color: #ffffff; /* Fondo blanco */
+  padding: 25px;
+  border: 2px solid #0b3d0b; /* Borde verde */
+  border-radius: 8px;
   margin-bottom: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 input, select {
   display: block;
-  width: 90%;
-  padding: 10px;
-  margin: 10px auto;
-  border: 1px solid #999;
+  width: 100%; /* Se ajusta al 100% */
+  padding: 12px;
+  margin: 10px 0;
+  border: 1px solid #ddd; /* Borde más suave */
   border-radius: 5px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+input:focus, select:focus {
+  border-color: #0b3d0b;
+  outline: none;
+  box-shadow: 0 0 5px rgba(11, 61, 11, 0.4);
 }
 
 #folio-container {
   text-align: center;
 }
 
+/* Estilo de botones */
 .btn {
-  background-color: #0b3d0b;
+  background-color: #0b3d0b; /* Verde */
   color: white;
-  padding: 10px 20px;
-  margin: 10px auto;
+  padding: 12px 20px;
+  margin: 15px 0;
   display: block;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   font-weight: bold;
+  text-transform: uppercase;
+  font-size: 1rem;
+  width: 100%; /* Se ajusta al 100% */
 }
 
 .btn:hover {
   background-color: #0e5e0e;
+}
+
+.btn:active {
+  background-color: #0a3b0a;
 }
 
 #reportes {
@@ -54,33 +75,42 @@ input, select {
   flex-wrap: wrap;
   gap: 20px;
   justify-content: center;
+  margin-top: 30px;
 }
 
 .reporte {
-  border: 1px solid #aaa;
-  border-radius: 10px;
-  padding: 15px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 20px;
   background: #fff;
   width: 250px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
 }
 
 .reporte img {
   max-width: 100%;
   height: auto;
   display: block;
-  margin: 10px auto;
+  margin: 10px 0;
   border-radius: 5px;
 }
 
 button.eliminar {
-  background-color: #a11212;
+  background-color: #a11212; /* Rojo */
   color: white;
-  padding: 6px;
+  padding: 10px 20px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  font-size: 1rem;
 }
 
+button.eliminar:hover {
+  background-color: #8f1010;
+}
+
+/* Modal */
 .modal {
   display: none;
   position: fixed;
@@ -92,15 +122,21 @@ button.eliminar {
 
 .modal-content {
   background-color: #fff;
-  margin: 15% auto;
-  padding: 20px;
-  width: 300px;
+  margin: 10% auto;
+  padding: 25px;
+  width: 320px;
   border: 2px solid #0b3d0b;
   border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 #cerrarModal {
   float: right;
-  font-size: 20px;
+  font-size: 24px;
   cursor: pointer;
+  color: #aaa;
+}
+
+#cerrarModal:hover {
+  color: #222;
 }
