@@ -1,8 +1,28 @@
-/* Estilos generales */
+/* Barra superior */
+.header {
+  background-color: #0b3d0b;
+  color: white;
+  padding: 12px 20px;
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: bold;
+  position: relative;
+  border-bottom: 4px solid #a11212; /* Línea roja como detalle institucional */
+}
+
+.header img {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 45px;
+}
+
+
 body {
   font-family: 'Segoe UI', sans-serif;
-  background-color: #f0f5ef; /* Fondo gris claro */
-  color: #222; /* Color de texto */
+  background-color: #f0f5ef; 
+  color: #222; 
   padding: 20px;
   max-width: 900px;
   margin: auto;
@@ -11,15 +31,15 @@ body {
 
 h1 {
   text-align: center;
-  color: #0b3d0b; /* Verde oscuro */
+  color: #0b3d0b;
   font-size: 2rem;
   margin-bottom: 30px;
 }
 
 form {
-  background-color: #ffffff; /* Fondo blanco */
+  background-color: #ffffff;
   padding: 25px;
-  border: 2px solid #0b3d0b; /* Borde verde */
+  border: 2px solid #0b3d0b; 
   border-radius: 8px;
   margin-bottom: 20px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -27,10 +47,10 @@ form {
 
 input, select {
   display: block;
-  width: 100%; /* Se ajusta al 100% */
+  width: 100%;
   padding: 12px;
   margin: 10px 0;
-  border: 1px solid #ddd; /* Borde más suave */
+  border: 1px solid #ddd; 
   border-radius: 5px;
   font-size: 1rem;
   box-sizing: border-box;
@@ -48,7 +68,7 @@ input:focus, select:focus {
 
 /* Estilo de botones */
 .btn {
-  background-color: #0b3d0b; /* Verde */
+  background-color: #0b3d0b;
   color: white;
   padding: 12px 20px;
   margin: 15px 0;
@@ -59,7 +79,7 @@ input:focus, select:focus {
   font-weight: bold;
   text-transform: uppercase;
   font-size: 1rem;
-  width: 100%; /* Se ajusta al 100% */
+  width: 100%;
 }
 
 .btn:hover {
@@ -97,7 +117,7 @@ input:focus, select:focus {
 }
 
 button.eliminar {
-  background-color: #a11212; /* Rojo */
+  background-color: #a11212;
   color: white;
   padding: 10px 20px;
   border: none;
