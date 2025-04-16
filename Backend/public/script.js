@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const API_BASE = 'https://mesa-servicio.onrender.com';
+
   const form = document.getElementById('formulario');
   const reportesDiv = document.getElementById('reportes');
   const modal = document.getElementById('modalLogin');
@@ -8,24 +10,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-  
+
     const formData = new FormData(form);
-  
+
     // Crear "direccion" uniendo calle + no_exterior + referencias
     const calle = formData.get('calle') || '';
     const numero = formData.get('no_exterior') || '';
     const referencias = formData.get('referencias') || '';
     const direccion = `${calle} ${numero}, Ref: ${referencias}`.trim();
     formData.append('direccion', direccion);
-  
+
     // Agregar la fecha actual (formato YYYY-MM-DD)
     const hoy = new Date().toISOString().split('T')[0];
     formData.append('fecha', hoy);
-  
-    console.log('Direccion:', direccion); // Asegúrate de que la dirección esté bien formada
-  
+
+    console.log('Direccion:', direccion);
+
     try {
-      const res = await fetch('http://localhost:3000/reportes', {
+      const res = await fetch(`${API_BASE}/reportes`, {
         method: 'POST',
         body: formData
       });
@@ -41,9 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Error al conectar con el servidor');
     }
   });
-  
+
   async function cargarReportes() {
-    const res = await fetch('http://localhost:3000/reportes');
+    const res = await fetch(`${API_BASE}/reportes`);
     const reportes = await res.json();
     reportesDiv.innerHTML = '';
     reportes.forEach(rep => {
@@ -54,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <small>${rep.fecha}</small><br>
         Dirección: ${rep.direccion || 'N/A'}<br>
         Solicitante: ${rep.solicitante}<br>
-        ${rep.foto ? `<img src="http://localhost:3000/uploads/${rep.foto}" />` : ''}
+        ${rep.foto ? `<img src="${API_BASE}/uploads/${rep.foto}" />` : ''}
         <button class="eliminar" data-id="${rep.id}">Eliminar</button>
       `;
       reportesDiv.appendChild(div);
@@ -93,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const contrasena = document.getElementById('contrasena').value;
     if (!idReporteAEliminar) return;
 
-    const res = await fetch('http://localhost:3000/eliminar', {
+    const res = await fetch(`${API_BASE}/eliminar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ usuario, contrasena, id: idReporteAEliminar })
@@ -113,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.descargarPDF = function () {
     const id = document.getElementById('pdf-id').value;
     if (!id) return alert('Ingresa un ID válido');
-    window.location.href = `http://localhost:3000/reporte/${id}/pdf`;
+    window.location.href = `${API_BASE}/reporte/${id}/pdf`;
   };
 
   // Exportar Excel filtrado
@@ -123,8 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams();
     if (fecha) params.append('fecha', fecha);
     if (colonia) params.append('colonia', colonia);
-    window.location.href = `http://localhost:3000/api/excel?${params.toString()}`;
-    };
+    window.location.href = `${API_BASE}/api/excel?${params.toString()}`;
+  };
 
   cargarReportes();
 });
