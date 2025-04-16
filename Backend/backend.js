@@ -183,7 +183,11 @@ app.get('/api/excel', (req, res) => {
 });
 
 // 🚀 Iniciar servidor
-const PORT = 3000;
+//const PORT = 3000;
+//app.listen(PORT, () => {
+//  console.log(`Servidor iniciado en http://localhost:${PORT}`);
+//});
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor iniciado en http://localhost:${PORT}`);
+  console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
