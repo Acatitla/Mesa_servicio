@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
 const path = require('path');
 const fs = require('fs');
 const PDFDocument = require('pdfkit');
@@ -13,31 +13,28 @@ app.use(express.json());
 app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
 
-// Crear carpeta uploads si no existe
 if (!fs.existsSync('uploads')) {
   fs.mkdirSync('uploads');
 }
 
-const dbFile = './reportes.db';
-const db = new sqlite3.Database(dbFile);
-
-// Crear la tabla si no existe (sin borrar)
-db.serialize(() => {
-  db.run(`CREATE TABLE IF NOT EXISTS reportes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    direccion TEXT,
-    colonia TEXT,
-    fecha TEXT,
-    solicitante TEXT,
-    telefono TEXT,
-    tipo_servicio TEXT,
-    origen TEXT,
-    folio TEXT,
-    foto TEXT
-  )`);
+const pool = new Pool({
+  connectionString: 'postgresql://mesa_servicio_user:5wTxLPTLqNTQsAasCTVx3smw1f0mJ1rf@dpg-d002ic1r0fns73drvocg-a.virginia-postgres.render.com/mesa_servicio',
+  ssl: { rejectUnauthorized: false }
 });
 
-// Configuración de multer para subir fotos
+pool.query(`CREATE TABLE IF NOT EXISTS reportes (
+  id SERIAL PRIMARY KEY,
+  direccion TEXT,
+  colonia TEXT,
+  fecha TEXT,
+  solicitante TEXT,
+  telefono TEXT,
+  tipo_servicio TEXT,
+  origen TEXT,
+  folio TEXT,
+  foto TEXT
+)`);
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads'),
   filename: (req, file, cb) => {
@@ -47,64 +44,66 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Guardar nuevo reporte
-app.post('/reportes', upload.single('foto'), (req, res) => {
+app.post('/reportes', upload.single('foto'), async (req, res) => {
   const {
     direccion, colonia, fecha, solicitante,
     telefono, tipo_servicio, origen, folio
   } = req.body;
-
   const foto = req.file ? req.file.filename : null;
 
-  db.get(
-    `SELECT * FROM reportes WHERE direccion = ? AND fecha = ?`,
-    [direccion, fecha],
-    (err, row) => {
-      if (row) {
-        return res.status(400).json({ error: 'Reporte duplicado para esta dirección y fecha.' });
-      }
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM reportes WHERE direccion = $1 AND fecha = $2`,
+      [direccion, fecha]
+    );
 
-      db.run(
-        `INSERT INTO reportes (direccion, colonia, fecha, solicitante, telefono, tipo_servicio, origen, folio, foto)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [direccion, colonia, fecha, solicitante, telefono, tipo_servicio, origen, folio, foto],
-        function (err) {
-          if (err) return res.status(500).json({ error: err.message });
-          res.json({ mensaje: 'Reporte guardado', id: this.lastID });
-        }
-      );
+    if (rows.length > 0) {
+      return res.status(400).json({ error: 'Reporte duplicado para esta dirección y fecha.' });
     }
-  );
+
+    const result = await pool.query(
+      `INSERT INTO reportes (direccion, colonia, fecha, solicitante, telefono, tipo_servicio, origen, folio, foto)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+      [direccion, colonia, fecha, solicitante, telefono, tipo_servicio, origen, folio, foto]
+    );
+
+    res.json({ mensaje: 'Reporte guardado', id: result.rows[0].id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Obtener todos los reportes
-app.get('/reportes', (req, res) => {
-  db.all(`SELECT * FROM reportes ORDER BY fecha DESC`, (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
+app.get('/reportes', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`SELECT * FROM reportes ORDER BY fecha DESC`);
     res.json(rows);
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Eliminar reporte (requiere autenticación)
-app.post('/eliminar', (req, res) => {
+app.post('/eliminar', async (req, res) => {
   const { usuario, contrasena, id } = req.body;
 
   if (usuario === 'oro4' && contrasena === 'luminarias') {
-    db.run(`DELETE FROM reportes WHERE id = ?`, [id], function (err) {
-      if (err) return res.status(500).json({ error: err.message });
+    try {
+      await pool.query(`DELETE FROM reportes WHERE id = $1`, [id]);
       res.json({ mensaje: 'Reporte eliminado' });
-    });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   } else {
     res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
   }
 });
 
-// Generar PDF de un reporte
-app.get('/reporte/:id/pdf', (req, res) => {
+app.get('/reporte/:id/pdf', async (req, res) => {
   const id = req.params.id;
+  try {
+    const { rows } = await pool.query(`SELECT * FROM reportes WHERE id = $1`, [id]);
+    const row = rows[0];
 
-  db.get(`SELECT * FROM reportes WHERE id = ?`, [id], (err, row) => {
-    if (err || !row) return res.status(404).send('Reporte no encontrado');
+    if (!row) return res.status(404).send('Reporte no encontrado');
 
     const doc = new PDFDocument();
     res.setHeader('Content-Type', 'application/pdf');
@@ -131,26 +130,28 @@ app.get('/reporte/:id/pdf', (req, res) => {
     }
 
     doc.end();
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Exportar a Excel
-app.get('/api/excel', (req, res) => {
+app.get('/api/excel', async (req, res) => {
   const { fecha, colonia } = req.query;
   let query = `SELECT * FROM reportes WHERE 1=1`;
   const params = [];
+  let idx = 1;
 
   if (fecha) {
-    query += ` AND fecha = ?`;
+    query += ` AND fecha = $${idx++}`;
     params.push(fecha);
   }
   if (colonia) {
-    query += ` AND colonia = ?`;
+    query += ` AND colonia = $${idx++}`;
     params.push(colonia);
   }
 
-  db.all(query, params, async (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
+  try {
+    const { rows } = await pool.query(query, params);
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Reportes');
@@ -177,10 +178,11 @@ app.get('/api/excel', (req, res) => {
 
     await workbook.xlsx.write(res);
     res.end();
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Iniciar servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto ${PORT}`);
