@@ -11,6 +11,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
+if (!fs.existsSync('uploads')) {
+  fs.mkdirSync('uploads');
+}
 app.use('/uploads', express.static('uploads'));
 
 const dbFile = './reportes.db';
@@ -18,7 +21,7 @@ const db = new sqlite3.Database(dbFile);
 
 // 🧹 Borrar tabla y crearla desde cero
 db.serialize(() => {
-  db.run(`DROP TABLE IF EXISTS reportes`);
+//db.run(`DROP TABLE IF EXISTS reportes`);
   db.run(`CREATE TABLE IF NOT EXISTS reportes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     direccion TEXT,
