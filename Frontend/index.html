@@ -22,9 +22,10 @@
 
   <form id="formulario" enctype="multipart/form-data">
     <input type="text" name="calle" placeholder="Calle" required />
-    <input type="number" name="no_exterior" placeholder="Número exterior" />
+    <input type="text" name="no_exterior" placeholder="No exterior" required />
     <input type="text" name="referencias" placeholder="Referencias" />
     <input type="text" name="colonia" placeholder="Colonia" required />
+    <input type="date" name="fecha" placeholder="Fecha del reporte" required />
     <input type="text" name="solicitante" placeholder="Nombre del solicitante" />
     <input type="number" name="telefono" placeholder="Teléfono" />
     
@@ -37,7 +38,7 @@
         <option value="fugas">Fugas</option>
     </select>
 
-    <!-- Origen del reporte (con tus opciones) -->
+    <!-- Origen del reporte -->
     <select name="origen" id="origen" required>
         <option value="">Selecciona el origen del reporte</option>
         <option value="suac">SUAC</option>
@@ -50,19 +51,26 @@
     </select>
 
     <div id="folio-container" style="display: none;">
-        <label for="folio">Folio:</label>
-        <input type="text" id="folio" name="folio">
-      </div>
+      <label for="folio">Folio:</label>
+      <input type="text" id="folio" name="folio">
+    </div>    
       
-
     <input type="file" name="foto" />
-    <button type="submit">Guardar reporte</button>
+    <button type="submit" class="btn">Guardar reporte</button>
   </form>
 
   <hr />
 
   <div id="reportes"></div>
   
+  <!-- Exportar PDF por ID -->
+  <input type="number" id="pdf-id" placeholder="ID del reporte">
+  <button class="btn" onclick="descargarPDF()">Descargar PDF</button>
+
+  <!-- Exportar Excel filtrado -->
+  <input type="date" id="fecha-excel">
+  <input type="text" id="colonia-excel" placeholder="Colonia">
+  <button class="btn" onclick="descargarExcel()">Descargar Excel</button>
 
   <script src="script.js"></script>
 </body>
