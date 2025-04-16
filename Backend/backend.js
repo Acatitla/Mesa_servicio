@@ -11,17 +11,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
+app.use('/uploads', express.static('uploads'));
+
+// Crear carpeta uploads si no existe
 if (!fs.existsSync('uploads')) {
   fs.mkdirSync('uploads');
 }
-app.use('/uploads', express.static('uploads'));
 
 const dbFile = './reportes.db';
 const db = new sqlite3.Database(dbFile);
 
-// 🧹 Borrar tabla y crearla desde cero
+// Crear la tabla si no existe (sin borrar)
 db.serialize(() => {
-//db.run(`DROP TABLE IF EXISTS reportes`);
   db.run(`CREATE TABLE IF NOT EXISTS reportes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     direccion TEXT,
@@ -36,7 +37,7 @@ db.serialize(() => {
   )`);
 });
 
-// 📦 Configuración de multer para subir fotos
+// Configuración de multer para subir fotos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads'),
   filename: (req, file, cb) => {
@@ -46,17 +47,11 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// 🔁 Guardar un nuevo reporte
+// Guardar nuevo reporte
 app.post('/reportes', upload.single('foto'), (req, res) => {
   const {
-    direccion,
-    colonia,
-    fecha,
-    solicitante,
-    telefono,
-    tipo_servicio,
-    origen,
-    folio
+    direccion, colonia, fecha, solicitante,
+    telefono, tipo_servicio, origen, folio
   } = req.body;
 
   const foto = req.file ? req.file.filename : null;
@@ -82,7 +77,7 @@ app.post('/reportes', upload.single('foto'), (req, res) => {
   );
 });
 
-// 📂 Obtener todos los reportes
+// Obtener todos los reportes
 app.get('/reportes', (req, res) => {
   db.all(`SELECT * FROM reportes ORDER BY fecha DESC`, (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -90,7 +85,7 @@ app.get('/reportes', (req, res) => {
   });
 });
 
-// 🗑️ Eliminar con autenticación simple
+// Eliminar reporte (requiere autenticación)
 app.post('/eliminar', (req, res) => {
   const { usuario, contrasena, id } = req.body;
 
@@ -104,7 +99,7 @@ app.post('/eliminar', (req, res) => {
   }
 });
 
-// 📄 PDF individual
+// Generar PDF de un reporte
 app.get('/reporte/:id/pdf', (req, res) => {
   const id = req.params.id;
 
@@ -139,7 +134,7 @@ app.get('/reporte/:id/pdf', (req, res) => {
   });
 });
 
-// 📊 Excel con filtro por fecha o colonia
+// Exportar a Excel
 app.get('/api/excel', (req, res) => {
   const { fecha, colonia } = req.query;
   let query = `SELECT * FROM reportes WHERE 1=1`;
@@ -185,11 +180,7 @@ app.get('/api/excel', (req, res) => {
   });
 });
 
-// 🚀 Iniciar servidor
-//const PORT = 3000;
-//app.listen(PORT, () => {
-//  console.log(`Servidor iniciado en http://localhost:${PORT}`);
-//});
+// Iniciar servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto ${PORT}`);
