@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Cargar las colonias del archivo JSON
   async function cargarColonias() {
-    const res = await fetch('/backend/data/colonias.json');
+    const res = await fetch('/Backend/data/colonias.json');
     const colonias = await res.json();
     const coloniaSelect = document.getElementById('colonia');
 
