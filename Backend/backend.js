@@ -174,9 +174,32 @@ app.get('/api/excel', async (req, res) => {
       { header: 'Foto', key: 'foto', width: 15 }
     ];
 
-    rows.forEach(row => {
-      sheet.addRow(row);
-    });
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const newRow = sheet.addRow(row);
+    
+      if (row.foto) {
+        const rutaFoto = path.join(__dirname, 'uploads', row.foto);
+        if (fs.existsSync(rutaFoto)) {
+          const imageId = workbook.addImage({
+            filename: rutaFoto,
+            extension: path.extname(rutaFoto).slice(1), // quita el punto, por ejemplo .jpg -> jpg
+          });
+    
+          const fila = newRow.number;
+          const col = 10; // Columna 10 = 'Foto'
+    
+          sheet.addImage(imageId, {
+            tl: { col: col - 1, row: fila - 1 },
+            ext: { width: 100, height: 100 }
+          });
+    
+          // Aumenta altura de la fila para que se vea bien
+          sheet.getRow(fila).height = 80;
+        }
+      }
+    }
+    
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=reportes.xlsx');

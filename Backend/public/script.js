@@ -8,6 +8,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const loginBtn = document.getElementById('loginBtn');
   let idReporteAEliminar = null;
 
+  // Cargar las colonias del archivo JSON
+  async function cargarColonias() {
+    const res = await fetch('/backend/data/colonias.json');
+    const colonias = await res.json();
+    const coloniaSelect = document.getElementById('colonia');
+
+    colonias.forEach(colonia => {
+      const option = document.createElement('option');
+      option.value = colonia;
+      option.textContent = colonia;
+      coloniaSelect.appendChild(option);
+    });
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -23,6 +37,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Agregar la fecha actual (formato YYYY-MM-DD)
     const hoy = new Date().toISOString().split('T')[0];
     formData.append('fecha', hoy);
+
+    // Si el campo de folio está visible, lo agregamos manualmente
+    const folioInput = document.getElementById('folio');
+    if (folioContainer.style.display !== 'none' && folioInput.value) {
+      formData.set('folio', folioInput.value);
+    }
 
     console.log('Direccion:', direccion);
 
@@ -129,4 +149,5 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   cargarReportes();
+  cargarColonias();  // Llamada para cargar las colonias cuando se carga el script
 });
