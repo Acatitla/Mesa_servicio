@@ -8,9 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const loginBtn = document.getElementById('loginBtn');
   let idReporteAEliminar = null;
 
-  // Cargar las colonias del archivo JSON
+  // Cargar las colonias del archivo JSON (ruta corregida)
   async function cargarColonias() {
-    const res = await fetch('/Backend/data/colonias.json');
+    const res = await fetch('/data/colonias.json');
     const colonias = await res.json();
     const coloniaSelect = document.getElementById('colonia');
 
