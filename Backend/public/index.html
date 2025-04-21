@@ -1,83 +1,77 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>Mesa de Servicio</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="estilos.css">
+  <script defer src="script.js"></script>
 </head>
 <body>
-  <div class="header">
-    <img src="https://lh4.googleusercontent.com/proxy/QmCobaNRjueDkw5RSRUcBK-jXVsdEx7k-mR0lvX10Dvp5LZ1pKqzVsGQN4J0YyU4JAdZZ-Sj_J9qggK9R2mdb9nmg_IbwDEN00KAp0dPetAJg-0" alt="Logo GAM">
-    Alcaldía Gustavo A. Madero - Reportes Ciudadanos
-  </div>
-  
-  
+
   <h1>Mesa de Servicio</h1>
-  
-  <!-- Modal para login -->
-  <div id="modalLogin" class="modal">
-    <div class="modal-content">
-      <span id="cerrarModal">&times;</span>
-      <h3>Ingresar usuario y contraseña para eliminar</h3>
-      <input type="text" id="usuario" placeholder="Usuario" />
-      <input type="password" id="contrasena" placeholder="Contraseña" />
-      <button id="loginBtn">Ingresar</button>
+
+  <!-- Formulario para agregar reportes -->
+  <form action="/api/reportes" method="POST" enctype="multipart/form-data">
+    <label for="direccion">Dirección</label>
+    <input type="text" name="direccion" id="direccion" required>
+
+    <label for="colonia">Colonia</label>
+    <select name="colonia" id="colonia" required>
+      <option value="">Selecciona una colonia</option>
+      <!-- Aquí van todas tus colonias -->
+      <option value="01-001 - ACUEDUCTO DE GUADALUPE (RDCIAL)">01-001 - ACUEDUCTO DE GUADALUPE (RDCIAL)</option>
+      <!-- etc... -->
+    </select>
+
+    <label for="tipo">Tipo de servicio</label>
+    <select name="tipo" id="tipo" required>
+      <option value="">Selecciona un tipo</option>
+      <option value="luminarias">Luminarias</option>
+      <option value="baches">Baches</option>
+      <option value="banquetas">Banquetas</option>
+      <option value="fugas">Fugas</option>
+    </select>
+
+    <label for="origen">Origen</label>
+    <select name="origen" id="origen" required>
+      <option value="">Selecciona un origen</option>
+      <option value="oficio">Officio</option>
+      <option value="dmu">DMU</option>
+      <option value="usuario">Usuario</option>
+    </select>
+
+    <div id="folioField">
+      <label for="folio">Folio</label>
+      <input type="text" name="folio" id="folio">
+    </div>
+
+    <label for="foto">Foto</label>
+    <input type="file" name="foto" accept="image/*">
+
+    <div class="form-buttons">
+      <button type="submit">Agregar Reporte</button>
+    </div>
+  </form>
+
+  <!-- Filtros y botón de exportar -->
+  <div class="filtros">
+    <div>
+      <label for="filtroFecha">Filtrar por fecha</label>
+      <input type="date" id="filtroFecha" name="filtroFecha">
+    </div>
+    <div>
+      <label for="filtroColonia">Filtrar por colonia</label>
+      <input type="text" id="filtroColonia" name="filtroColonia" placeholder="Ej. San Juan de Aragón">
+    </div>
+    <div>
+      <button id="btnExportar">Exportar a Excel</button>
     </div>
   </div>
 
-  <form id="formulario" enctype="multipart/form-data">
-    <input type="text" name="calle" placeholder="Calle" required />
-    <input type="text" name="no_exterior" placeholder="No exterior" required />
-    <input type="text" name="referencias" placeholder="Referencias" />
-    <input type="text" name="colonia" placeholder="Colonia" required />
-    <input type="date" name="fecha" placeholder="Fecha del reporte" required />
-    <input type="text" name="solicitante" placeholder="Nombre del solicitante" />
-    <input type="number" name="telefono" placeholder="Teléfono" />
-    
-    <!-- Tipo de servicio -->
-    <select name="tipo" required>
-        <option value="">Selecciona el tipo de servicio</option>
-        <option value="luminarias">Luminarias</option>
-        <option value="baches">Baches</option>
-        <option value="banquetas">Banquetas</option>
-        <option value="fugas">Fugas</option>
-    </select>
+  <!-- Reportes -->
+  <div id="reportes">
+    <!-- Aquí se van a renderizar los reportes desde el backend -->
+  </div>
 
-    <!-- Origen del reporte -->
-    <select name="origen" id="origen" required>
-        <option value="">Selecciona el origen del reporte</option>
-        <option value="suac">SUAC</option>
-        <option value="officio">Officio</option>
-        <option value="dmu">DMU</option>
-        <option value="emergencia">Emergencia</option>
-        <option value="direccion">Dirección</option>
-        <option value="alcaldia">Alcaldía</option>
-        <option value="zeus">Zeus</option>
-    </select>
-
-    <div id="folio-container" style="display: none;">
-      <label for="folio">Folio:</label>
-      <input type="text" id="folio" name="folio">
-    </div>    
-      
-    <input type="file" name="foto" />
-    <button type="submit" class="btn">Guardar reporte</button>
-  </form>
-
-  <hr />
-
-  <div id="reportes"></div>
-  
-  <!-- Exportar PDF por ID -->
-  <input type="number" id="pdf-id" placeholder="ID del reporte">
-  <button class="btn" onclick="descargarPDF()">Descargar PDF</button>
-
-  <!-- Exportar Excel filtrado -->
-  <input type="date" id="fecha-excel">
-  <input type="text" id="colonia-excel" placeholder="Colonia">
-  <button class="btn" onclick="descargarExcel()">Descargar Excel</button>
-
-  <script src="script.js"></script>
 </body>
 </html>

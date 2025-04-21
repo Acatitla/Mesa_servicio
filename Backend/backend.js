@@ -12,17 +12,20 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
-app.use('/data', express.static(path.join(__dirname, 'data'))); // ✅ Para colonias.json
+app.use('/data', express.static(path.join(__dirname, 'data'))); // Para colonias.json
 
+// Crear la carpeta uploads si no existe
 if (!fs.existsSync('uploads')) {
   fs.mkdirSync('uploads');
 }
 
+// Configuración de PostgreSQL
 const pool = new Pool({
   connectionString: 'postgresql://mesa_servicio_user:5wTxLPTLqNTQsAasCTVx3smw1f0mJ1rf@dpg-d002ic1r0fns73drvocg-a.virginia-postgres.render.com/mesa_servicio',
   ssl: { rejectUnauthorized: false }
 });
 
+// Crear tabla si no existe
 pool.query(`CREATE TABLE IF NOT EXISTS reportes (
   id SERIAL PRIMARY KEY,
   direccion TEXT,
@@ -36,6 +39,7 @@ pool.query(`CREATE TABLE IF NOT EXISTS reportes (
   foto TEXT
 )`);
 
+// Configuración de Multer para imágenes
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads'),
   filename: (req, file, cb) => {
@@ -45,10 +49,12 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Página principal
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Registrar un nuevo reporte
 app.post('/reportes', upload.single('foto'), async (req, res) => {
   const {
     direccion, colonia, fecha, solicitante,
@@ -78,6 +84,7 @@ app.post('/reportes', upload.single('foto'), async (req, res) => {
   }
 });
 
+// Obtener todos los reportes
 app.get('/reportes', async (req, res) => {
   try {
     const { rows } = await pool.query(`SELECT * FROM reportes ORDER BY fecha DESC`);
@@ -87,6 +94,7 @@ app.get('/reportes', async (req, res) => {
   }
 });
 
+// Eliminar un reporte con autenticación
 app.post('/eliminar', async (req, res) => {
   const { usuario, contrasena, id } = req.body;
 
@@ -102,6 +110,7 @@ app.post('/eliminar', async (req, res) => {
   }
 });
 
+// Exportar reporte individual a PDF
 app.get('/reporte/:id/pdf', async (req, res) => {
   const id = req.params.id;
   try {
@@ -112,6 +121,7 @@ app.get('/reporte/:id/pdf', async (req, res) => {
 
     const doc = new PDFDocument();
     res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=reporte_${id}.pdf`);
     doc.pipe(res);
 
     doc.fontSize(14).text('Reporte de Servicio', { align: 'center' });
@@ -140,6 +150,7 @@ app.get('/reporte/:id/pdf', async (req, res) => {
   }
 });
 
+// Exportar reportes filtrados a Excel
 app.get('/api/excel', async (req, res) => {
   const { fecha, colonia } = req.query;
   let query = `SELECT * FROM reportes WHERE 1=1`;
@@ -209,6 +220,7 @@ app.get('/api/excel', async (req, res) => {
   }
 });
 
+// Puerto
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto ${PORT}`);
