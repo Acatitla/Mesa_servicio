@@ -1,77 +1,98 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Mesa de Servicio</title>
-  <link rel="stylesheet" href="styles.css">
-  <script defer src="script.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mesa de Servicio GAM</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <header>
+    <img src="logo_gam.png" alt="Logo GAM" class="logo" />
+    <h1>Mesa de Servicio GAM</h1>
+  </header>
 
-  <h1>Mesa de Servicio</h1>
+  <main>
+    <form id="formularioReporte" enctype="multipart/form-data" method="POST" action="/api/reportes">
+      <label for="direccion">Dirección:</label>
+      <input type="text" name="direccion" id="direccion" required />
 
-  <!-- Formulario para agregar reportes -->
-  <form action="/api/reportes" method="POST" enctype="multipart/form-data">
-    <label for="direccion">Dirección</label>
-    <input type="text" name="direccion" id="direccion" required>
+      <label for="colonia">Colonia:</label>
+      <select name="colonia" id="colonia" required>
+        <option value="">Selecciona una colonia</option>
+      </select>
 
-    <label for="colonia">Colonia</label>
-    <select name="colonia" id="colonia" required>
-      <option value="">Selecciona una colonia</option>
-      <!-- Aquí van todas tus colonias -->
-      <option value="01-001 - ACUEDUCTO DE GUADALUPE (RDCIAL)">01-001 - ACUEDUCTO DE GUADALUPE (RDCIAL)</option>
-      <!-- etc... -->
-    </select>
+      <label for="origen">Origen del reporte:</label>
+      <select name="origen" id="origen" required>
+        <option value="">Selecciona origen</option>
+        <option value="ciudadano">Ciudadano</option>
+        <option value="officio">Officio</option>
+        <option value="dmu">DMU</option>
+      </select>
 
-    <label for="tipo">Tipo de servicio</label>
-    <select name="tipo" id="tipo" required>
-      <option value="">Selecciona un tipo</option>
-      <option value="luminarias">Luminarias</option>
-      <option value="baches">Baches</option>
-      <option value="banquetas">Banquetas</option>
-      <option value="fugas">Fugas</option>
-    </select>
+      <div id="folioField" style="display: none;">
+        <label for="folio">Folio:</label>
+        <input type="text" name="folio" id="folio" />
+      </div>
 
-    <label for="origen">Origen</label>
-    <select name="origen" id="origen" required>
-      <option value="">Selecciona un origen</option>
-      <option value="oficio">Officio</option>
-      <option value="dmu">DMU</option>
-      <option value="usuario">Usuario</option>
-    </select>
+      <label for="servicio">Tipo de servicio:</label>
+      <select name="servicio" id="servicio" required>
+        <option value="">Selecciona servicio</option>
+        <option value="luminarias">Luminarias</option>
+        <option value="baches">Baches</option>
+        <option value="banquetas">Banquetas</option>
+        <option value="fugas">Fugas</option>
+      </select>
 
-    <div id="folioField">
-      <label for="folio">Folio</label>
-      <input type="text" name="folio" id="folio">
-    </div>
+      <label for="imagen">Foto (opcional):</label>
+      <input type="file" name="imagen" accept="image/*" />
 
-    <label for="foto">Foto</label>
-    <input type="file" name="foto" accept="image/*">
+      <button type="submit">Enviar reporte</button>
+    </form>
 
-    <div class="form-buttons">
-      <button type="submit">Agregar Reporte</button>
-    </div>
-  </form>
+    <section id="filtrosExportar">
+      <h2>Exportar reportes</h2>
+      <label for="filtroFecha">Filtrar por fecha:</label>
+      <input type="date" id="filtroFecha" name="filtroFecha" />
 
-  <!-- Filtros y botón de exportar -->
-  <div class="filtros">
-    <div>
-      <label for="filtroFecha">Filtrar por fecha</label>
-      <input type="date" id="filtroFecha" name="filtroFecha">
-    </div>
-    <div>
-      <label for="filtroColonia">Filtrar por colonia</label>
-      <input type="text" id="filtroColonia" name="filtroColonia" placeholder="Ej. San Juan de Aragón">
-    </div>
-    <div>
+      <label for="filtroColonia">Filtrar por colonia:</label>
+      <select id="filtroColonia" name="filtroColonia">
+        <option value="">Todas</option>
+      </select>
+
       <button id="btnExportar">Exportar a Excel</button>
-    </div>
-  </div>
+      <button id="btnExportarPDF">Exportar a PDF</button>
+    </section>
 
-  <!-- Reportes -->
-  <div id="reportes">
-    <!-- Aquí se van a renderizar los reportes desde el backend -->
-  </div>
+    <section id="reportes">
+      <h2>Reportes Recientes</h2>
+      <div id="contenedorReportes">
+        <!-- Aquí se insertan los reportes desde el backend -->
+      </div>
+    </section>
+  </main>
 
+  <script src="script.js"></script>
+  <script>
+    // Cargar colonias desde el archivo JSON
+    fetch('/data/colonias.json')
+      .then(res => res.json())
+      .then(data => {
+        const selectColonia = document.getElementById('colonia');
+        const filtroColonia = document.getElementById('filtroColonia');
+        data.forEach(colonia => {
+          const option1 = document.createElement('option');
+          option1.value = colonia;
+          option1.textContent = colonia;
+          selectColonia.appendChild(option1);
+
+          const option2 = document.createElement('option');
+          option2.value = colonia;
+          option2.textContent = colonia;
+          filtroColonia.appendChild(option2);
+        });
+      })
+      .catch(err => console.error('Error al cargar colonias:', err));
+  </script>
 </body>
 </html>
