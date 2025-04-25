@@ -12,20 +12,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
-app.use('/data', express.static(path.join(__dirname, 'data'))); // Para colonias.json
 
-// Crear la carpeta uploads si no existe
 if (!fs.existsSync('uploads')) {
   fs.mkdirSync('uploads');
 }
 
-// Configuración de PostgreSQL
 const pool = new Pool({
   connectionString: 'postgresql://mesa_servicio_user:5wTxLPTLqNTQsAasCTVx3smw1f0mJ1rf@dpg-d002ic1r0fns73drvocg-a.virginia-postgres.render.com/mesa_servicio',
   ssl: { rejectUnauthorized: false }
 });
 
-// Crear tabla si no existe
 pool.query(`CREATE TABLE IF NOT EXISTS reportes (
   id SERIAL PRIMARY KEY,
   direccion TEXT,
@@ -39,7 +35,6 @@ pool.query(`CREATE TABLE IF NOT EXISTS reportes (
   foto TEXT
 )`);
 
-// Configuración de Multer para imágenes
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads'),
   filename: (req, file, cb) => {
@@ -49,12 +44,10 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Página principal
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Registrar un nuevo reporte
 app.post('/reportes', upload.single('foto'), async (req, res) => {
   const {
     direccion, colonia, fecha, solicitante,
@@ -84,7 +77,6 @@ app.post('/reportes', upload.single('foto'), async (req, res) => {
   }
 });
 
-// Obtener todos los reportes
 app.get('/reportes', async (req, res) => {
   try {
     const { rows } = await pool.query(`SELECT * FROM reportes ORDER BY fecha DESC`);
@@ -94,7 +86,6 @@ app.get('/reportes', async (req, res) => {
   }
 });
 
-// Eliminar un reporte con autenticación
 app.post('/eliminar', async (req, res) => {
   const { usuario, contrasena, id } = req.body;
 
@@ -110,9 +101,9 @@ app.post('/eliminar', async (req, res) => {
   }
 });
 
-// Exportar reporte individual a PDF
 app.get('/reporte/:id/pdf', async (req, res) => {
   const id = req.params.id;
+
   try {
     const { rows } = await pool.query(`SELECT * FROM reportes WHERE id = $1`, [id]);
     const row = rows[0];
@@ -124,9 +115,10 @@ app.get('/reporte/:id/pdf', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename=reporte_${id}.pdf`);
     doc.pipe(res);
 
-    doc.fontSize(14).text('Reporte de Servicio', { align: 'center' });
+    doc.fontSize(18).text('Reporte de Servicio', { align: 'center' });
     doc.moveDown();
-    doc.fontSize(12);
+
+    doc.fontSize(12).text(`ID: ${row.id}`);
     doc.text(`Dirección: ${row.direccion}`);
     doc.text(`Colonia: ${row.colonia}`);
     doc.text(`Fecha: ${row.fecha}`);
@@ -140,17 +132,21 @@ app.get('/reporte/:id/pdf', async (req, res) => {
     if (row.foto) {
       const ruta = path.join(__dirname, 'uploads', row.foto);
       if (fs.existsSync(ruta)) {
+        doc.addPage();
+        doc.text('Evidencia Fotográfica:');
         doc.image(ruta, { width: 100 });
+      } else {
+        doc.text('Imagen no disponible (archivo no encontrado).');
       }
     }
 
     doc.end();
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error al generar el PDF:', err);
+    res.status(500).json({ error: 'Error al generar PDF' });
   }
 });
 
-// Exportar reportes filtrados a Excel
 app.get('/api/excel', async (req, res) => {
   const { fecha, colonia } = req.query;
   let query = `SELECT * FROM reportes WHERE 1=1`;
@@ -185,30 +181,9 @@ app.get('/api/excel', async (req, res) => {
       { header: 'Foto', key: 'foto', width: 15 }
     ];
 
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const newRow = sheet.addRow(row);
-
-      if (row.foto) {
-        const rutaFoto = path.join(__dirname, 'uploads', row.foto);
-        if (fs.existsSync(rutaFoto)) {
-          const imageId = workbook.addImage({
-            filename: rutaFoto,
-            extension: path.extname(rutaFoto).slice(1)
-          });
-
-          const fila = newRow.number;
-          const col = 10;
-
-          sheet.addImage(imageId, {
-            tl: { col: col - 1, row: fila - 1 },
-            ext: { width: 100, height: 100 }
-          });
-
-          sheet.getRow(fila).height = 80;
-        }
-      }
-    }
+    rows.forEach(row => {
+      sheet.addRow(row);
+    });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=reportes.xlsx');
@@ -220,7 +195,6 @@ app.get('/api/excel', async (req, res) => {
   }
 });
 
-// Puerto
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto ${PORT}`);
