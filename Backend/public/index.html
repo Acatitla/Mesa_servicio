@@ -11,9 +11,9 @@
     <img src="https://lh4.googleusercontent.com/proxy/QmCobaNRjueDkw5RSRUcBK-jXVsdEx7k-mR0lvX10Dvp5LZ1pKqzVsGQN4J0YyU4JAdZZ-Sj_J9qggK9R2mdb9nmg_IbwDEN00KAp0dPetAJg-0" alt="Logo GAM">
     Alcaldía Gustavo A. Madero - Reportes Ciudadanos
   </div>
-  
+
   <h1>Mesa de Servicio</h1>
-  
+
   <!-- Modal para login -->
   <div id="modalLogin" class="modal">
     <div class="modal-content">
@@ -25,25 +25,16 @@
     </div>
   </div>
 
+  <!-- FORMULARIO DE REPORTE -->
   <form id="formulario" enctype="multipart/form-data">
     <input type="text" name="calle" placeholder="Calle" required />
     <input type="text" name="no_exterior" placeholder="No exterior" required />
     <input type="text" name="referencias" placeholder="Referencias" />
-    
-    <!-- Colonia con lista -->
-    <select name="colonia" required>
-      <option value="">Selecciona la colonia</option>
-      <option value="ACUEDUCTO DE GUADALUPE">ACUEDUCTO DE GUADALUPE</option>
-      <option value="SAN JUAN DE ARAGÓN">SAN JUAN DE ARAGÓN</option>
-      <option value="GABRIEL HERNÁNDEZ">GABRIEL HERNÁNDEZ</option>
-      <option value="VILLA DE ARAGÓN">VILLA DE ARAGÓN</option>
-      <option value="VASCO DE QUIROGA">VASCO DE QUIROGA</option>
-      <!-- Puedes agregar todas las demás aquí -->
-    </select>
-
+    <select name="colonia" id="colonia-select" required></select>
+    <input type="date" name="fecha" placeholder="Fecha del reporte" required />
     <input type="text" name="solicitante" placeholder="Nombre del solicitante" />
     <input type="number" name="telefono" placeholder="Teléfono" />
-    
+
     <!-- Tipo de servicio -->
     <select name="tipo" required>
         <option value="">Selecciona el tipo de servicio</option>
@@ -69,15 +60,21 @@
       <label for="folio">Folio:</label>
       <input type="text" id="folio" name="folio">
     </div>    
-      
-    <input type="file" name="foto" accept="image/*" />
+
+    <input type="file" name="foto" />
     <button type="submit" class="btn">Guardar reporte</button>
   </form>
 
   <hr />
 
+  <!-- 🟩 FILTRO DE COLONIAS -->
+  <label for="filtro-colonia">Filtrar por colonia:</label>
+  <select id="filtro-colonia">
+    <option value="">-- Ver todas --</option>
+  </select>
+
   <div id="reportes"></div>
-  
+
   <!-- Exportar PDF por ID -->
   <input type="number" id="pdf-id" placeholder="ID del reporte">
   <button class="btn" onclick="descargarPDF()">Descargar PDF</button>

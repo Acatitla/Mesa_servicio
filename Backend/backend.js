@@ -1,201 +1,127 @@
-const express = require('express');
-const multer = require('multer');
-const { Pool } = require('pg');
-const path = require('path');
-const fs = require('fs');
-const PDFDocument = require('pdfkit');
-const ExcelJS = require('exceljs');
-const cors = require('cors');
+document.addEventListener('DOMContentLoaded', () => {
+  const API_BASE = ''; // si estás en local, lo dejamos vacío
+  const form = document.getElementById('formulario');
+  const reportesDiv = document.getElementById('reportes');
+  const modal = document.getElementById('modalLogin');
+  const cerrarModal = document.getElementById('cerrarModal');
+  const loginBtn = document.getElementById('loginBtn');
+  let idReporteAEliminar = null;
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(express.static('public'));
-app.use('/uploads', express.static('uploads'));
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
 
-if (!fs.existsSync('uploads')) {
-  fs.mkdirSync('uploads');
-}
+    const calle = formData.get('calle') || '';
+    const numero = formData.get('no_exterior') || '';
+    const referencias = formData.get('referencias') || '';
+    const direccion = `${calle} ${numero}, Ref: ${referencias}`.trim();
+    formData.append('direccion', direccion);
 
-const pool = new Pool({
-  connectionString: 'postgresql://mesa_servicio_user:5wTxLPTLqNTQsAasCTVx3smw1f0mJ1rf@dpg-d002ic1r0fns73drvocg-a.virginia-postgres.render.com/mesa_servicio',
-  ssl: { rejectUnauthorized: false }
-});
-
-pool.query(`CREATE TABLE IF NOT EXISTS reportes (
-  id SERIAL PRIMARY KEY,
-  direccion TEXT,
-  colonia TEXT,
-  fecha TEXT,
-  solicitante TEXT,
-  telefono TEXT,
-  tipo_servicio TEXT,
-  origen TEXT,
-  folio TEXT,
-  foto TEXT
-)`);
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads'),
-  filename: (req, file, cb) => {
-    const nombreUnico = Date.now() + '_' + file.originalname;
-    cb(null, nombreUnico);
-  }
-});
-const upload = multer({ storage });
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.post('/reportes', upload.single('foto'), async (req, res) => {
-  const {
-    direccion, colonia, fecha, solicitante,
-    telefono, tipo_servicio, origen, folio
-  } = req.body;
-  const foto = req.file ? req.file.filename : null;
-
-  try {
-    const { rows } = await pool.query(
-      `SELECT * FROM reportes WHERE direccion = $1 AND fecha = $2`,
-      [direccion, fecha]
-    );
-
-    if (rows.length > 0) {
-      return res.status(400).json({ error: 'Reporte duplicado para esta dirección y fecha.' });
-    }
-
-    const result = await pool.query(
-      `INSERT INTO reportes (direccion, colonia, fecha, solicitante, telefono, tipo_servicio, origen, folio, foto)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
-      [direccion, colonia, fecha, solicitante, telefono, tipo_servicio, origen, folio, foto]
-    );
-
-    res.json({ mensaje: 'Reporte guardado', id: result.rows[0].id });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/reportes', async (req, res) => {
-  try {
-    const { rows } = await pool.query(`SELECT * FROM reportes ORDER BY fecha DESC`);
-    res.json(rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/eliminar', async (req, res) => {
-  const { usuario, contrasena, id } = req.body;
-
-  if (usuario === 'oro4' && contrasena === 'luminarias') {
     try {
-      await pool.query(`DELETE FROM reportes WHERE id = $1`, [id]);
-      res.json({ mensaje: 'Reporte eliminado' });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  } else {
-    res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
-  }
-});
-
-app.get('/reporte/:id/pdf', async (req, res) => {
-  const id = req.params.id;
-
-  try {
-    const { rows } = await pool.query(`SELECT * FROM reportes WHERE id = $1`, [id]);
-    const row = rows[0];
-
-    if (!row) return res.status(404).send('Reporte no encontrado');
-
-    const doc = new PDFDocument();
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=reporte_${id}.pdf`);
-    doc.pipe(res);
-
-    doc.fontSize(18).text('Reporte de Servicio', { align: 'center' });
-    doc.moveDown();
-
-    doc.fontSize(12).text(`ID: ${row.id}`);
-    doc.text(`Dirección: ${row.direccion}`);
-    doc.text(`Colonia: ${row.colonia}`);
-    doc.text(`Fecha: ${row.fecha}`);
-    doc.text(`Solicitante: ${row.solicitante}`);
-    doc.text(`Teléfono: ${row.telefono}`);
-    doc.text(`Servicio: ${row.tipo_servicio}`);
-    doc.text(`Origen: ${row.origen}`);
-    doc.text(`Folio: ${row.folio || 'N/A'}`);
-    doc.moveDown();
-
-    if (row.foto) {
-      const ruta = path.join(__dirname, 'uploads', row.foto);
-      if (fs.existsSync(ruta)) {
-        doc.addPage();
-        doc.text('Evidencia Fotográfica:');
-        doc.image(ruta, { width: 100 });
+      const res = await fetch(`${API_BASE}/reportes`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Reporte guardado');
+        form.reset();
+        cargarReportes();
       } else {
-        doc.text('Imagen no disponible (archivo no encontrado).');
+        alert(data.error || 'Error al guardar');
       }
+    } catch (err) {
+      alert('Error al conectar con el servidor');
     }
+  });
 
-    doc.end();
-  } catch (err) {
-    console.error('Error al generar el PDF:', err);
-    res.status(500).json({ error: 'Error al generar PDF' });
+  async function cargarReportes() {
+    try {
+      const res = await fetch(`${API_BASE}/reportes`);
+      const reportes = await res.json();
+      reportesDiv.innerHTML = '';
+
+      reportes.forEach(rep => {
+        const div = document.createElement('div');
+        div.className = 'reporte';
+        div.innerHTML = `
+          <strong>${rep.tipo_servicio || rep.tipo}</strong><br>
+          <small>${rep.fecha}</small><br>
+          Dirección: ${rep.direccion || 'N/A'}<br>
+          Solicitante: ${rep.solicitante || ''}<br>
+          ${rep.foto ? `<img src="/uploads/${rep.foto}" width="100">` : ''}
+          <br>
+          <button class="eliminar" data-id="${rep.id}">Eliminar</button>
+        `;
+        reportesDiv.appendChild(div);
+      });
+
+      document.querySelectorAll('.eliminar').forEach(btn => {
+        btn.addEventListener('click', () => {
+          idReporteAEliminar = btn.getAttribute('data-id');
+          modal.style.display = 'block';
+        });
+      });
+    } catch (err) {
+      console.error('Error al cargar los reportes:', err);
+      alert('Error al cargar los reportes');
+    }
   }
-});
 
-app.get('/api/excel', async (req, res) => {
-  const { fecha, colonia } = req.query;
-  let query = `SELECT * FROM reportes WHERE 1=1`;
-  const params = [];
-  let idx = 1;
+  cerrarModal.onclick = () => {
+    modal.style.display = 'none';
+  };
 
-  if (fecha) {
-    query += ` AND fecha = $${idx++}`;
-    params.push(fecha);
+  const origenSelect = document.getElementById("origen");
+  const folioContainer = document.getElementById("folio-container");
+
+  function toggleFolioField() {
+    const selectedValue = origenSelect.value;
+    if (selectedValue === "officio" || selectedValue === "dmu") {
+      folioContainer.style.display = "block";
+    } else {
+      folioContainer.style.display = "none";
+    }
   }
-  if (colonia) {
-    query += ` AND colonia = $${idx++}`;
-    params.push(colonia);
-  }
 
-  try {
-    const { rows } = await pool.query(query, params);
+  origenSelect.addEventListener("change", toggleFolioField);
+  toggleFolioField();
 
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('Reportes');
+  loginBtn.onclick = async () => {
+    const usuario = document.getElementById('usuario').value;
+    const contrasena = document.getElementById('contrasena').value;
+    if (!idReporteAEliminar) return;
 
-    sheet.columns = [
-      { header: 'ID', key: 'id', width: 10 },
-      { header: 'Dirección', key: 'direccion', width: 30 },
-      { header: 'Colonia', key: 'colonia', width: 20 },
-      { header: 'Fecha', key: 'fecha', width: 15 },
-      { header: 'Solicitante', key: 'solicitante', width: 20 },
-      { header: 'Teléfono', key: 'telefono', width: 15 },
-      { header: 'Servicio', key: 'tipo_servicio', width: 20 },
-      { header: 'Origen', key: 'origen', width: 15 },
-      { header: 'Folio', key: 'folio', width: 15 },
-      { header: 'Foto', key: 'foto', width: 15 }
-    ];
-
-    rows.forEach(row => {
-      sheet.addRow(row);
+    const res = await fetch(`${API_BASE}/eliminar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario, contrasena, id: idReporteAEliminar })
     });
 
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=reportes.xlsx');
+    const data = await res.json();
+    if (res.ok) {
+      alert('Reporte eliminado');
+      modal.style.display = 'none';
+      cargarReportes();
+    } else {
+      alert(data.error || 'Error de autenticación');
+    }
+  };
 
-    await workbook.xlsx.write(res);
-    res.end();
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  window.descargarPDF = function () {
+    const id = document.getElementById('pdf-id').value;
+    if (!id) return alert('Ingresa un ID válido');
+    window.location.href = `${API_BASE}/reporte/${id}/pdf`;
+  };
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en el puerto ${PORT}`);
+  window.descargarExcel = function () {
+    const fecha = document.getElementById('fecha-excel').value;
+    const colonia = document.getElementById('colonia-excel').value;
+    const params = new URLSearchParams();
+    if (fecha) params.append('fecha', fecha);
+    if (colonia) params.append('colonia', colonia);
+    window.location.href = `${API_BASE}/api/excel?${params.toString()}`;
+  };
+
+  cargarReportes();
 });
