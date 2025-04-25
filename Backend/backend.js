@@ -1,116 +1,72 @@
+require('dotenv').config();
 const express = require('express');
-const multer = require('multer');
+const app = express();
 const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
+const multer = require('multer');
 const fs = require('fs');
 const cors = require('cors');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Base de datos
-const dbPath = path.join(__dirname, 'database', 'reportes.db');
-const db = new sqlite3.Database(dbPath);
+// Configura la conexión a PostgreSQL
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  ssl: { rejectUnauthorized: false }
+});
 
-// Carga de imágenes
+// Subida de fotos con multer
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => {
-    const uniqueName = Date.now() + '-' + file.originalname;
-    cb(null, uniqueName);
-  }
+  destination: (req, file, cb) => cb(null, 'uploads'),
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
 const upload = multer({ storage });
 
 // Crear tabla si no existe
-db.run(`CREATE TABLE IF NOT EXISTS reportes (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  servicio TEXT,
-  origen TEXT,
-  folio TEXT,
+const createTableQuery = `
+CREATE TABLE IF NOT EXISTS reportes (
+  id SERIAL PRIMARY KEY,
+  tipo TEXT,
   colonia TEXT,
   direccion TEXT,
   descripcion TEXT,
+  origen TEXT,
+  folio TEXT,
   fecha TEXT,
-  imagen TEXT
-)`);
+  foto TEXT
+);
+`;
+pool.query(createTableQuery).catch(console.error);
 
-// Ruta para agregar reporte
-app.post('/agregar-reporte', upload.single('foto'), (req, res) => {
-  const { servicio, origen, folio, colonia, direccion, descripcion, fecha } = req.body;
-  const imagen = req.file ? req.file.filename : '';
-
-  const query = `
-    INSERT INTO reportes (servicio, origen, folio, colonia, direccion, descripcion, fecha, imagen)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-
-  db.run(query, [servicio, origen, folio, colonia, direccion, descripcion, fecha, imagen], function (err) {
-    if (err) return res.status(500).json({ error: 'Error al insertar el reporte' });
+// Ruta para guardar un reporte
+app.post('/agregar', upload.single('foto'), async (req, res) => {
+  const { tipo, colonia, direccion, descripcion, origen, folio, fecha } = req.body;
+  const foto = req.file ? req.file.filename : null;
+  try {
+    await pool.query('INSERT INTO reportes (tipo, colonia, direccion, descripcion, origen, folio, fecha, foto) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)', [tipo, colonia, direccion, descripcion, origen, folio, fecha, foto]);
     res.redirect('/');
-  });
+  } catch (err) {
+    res.status(500).send('Error al guardar el reporte');
+  }
 });
 
-// Ruta para obtener todos los reportes
-app.get('/reportes', (req, res) => {
-  db.all('SELECT * FROM reportes ORDER BY id DESC', [], (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Error al obtener reportes' });
+// Ruta para obtener los reportes
+app.get('/reportes', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM reportes ORDER BY id DESC');
     res.json(rows);
-  });
-});
-
-// Ruta para filtrar reportes por colonia o fecha
-app.get('/filtrar-reportes', (req, res) => {
-  const { colonia, fecha } = req.query;
-  let query = 'SELECT * FROM reportes WHERE 1=1';
-  const params = [];
-
-  if (colonia) {
-    query += ' AND colonia = ?';
-    params.push(colonia);
+  } catch (err) {
+    res.status(500).send('Error al obtener los reportes');
   }
-
-  if (fecha) {
-    query += ' AND fecha = ?';
-    params.push(fecha);
-  }
-
-  query += ' ORDER BY id DESC';
-
-  db.all(query, params, (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Error al filtrar reportes' });
-    res.json(rows);
-  });
 });
 
-// Ruta para eliminar un reporte (con autenticación simple)
-app.post('/eliminar-reporte', (req, res) => {
-  const { id, usuario, contrasena } = req.body;
-
-  if (usuario !== 'oro4' || contrasena !== 'luminarias') {
-    return res.status(401).json({ error: 'Autenticación incorrecta' });
-  }
-
-  db.get('SELECT imagen FROM reportes WHERE id = ?', [id], (err, row) => {
-    if (err) return res.status(500).json({ error: 'Error al buscar imagen' });
-
-    if (row && row.imagen) {
-      const rutaImagen = path.join(__dirname, 'uploads', row.imagen);
-      if (fs.existsSync(rutaImagen)) fs.unlinkSync(rutaImagen);
-    }
-
-    db.run('DELETE FROM reportes WHERE id = ?', [id], function (err) {
-      if (err) return res.status(500).json({ error: 'Error al eliminar reporte' });
-      res.json({ mensaje: 'Reporte eliminado correctamente' });
-    });
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor escuchando en puerto ${PORT}`));
