@@ -1,16 +1,12 @@
 [
-    {"clave": "05-001", "nombre": "ACUEDUCTO DE GUADALUPE (RDCIAL)"},
-    {"clave": "05-002", "nombre": "ACUEDUCTO DE GUADALUPE (U HAB)"},
-    {"clave": "05-003", "nombre": "AHUEHUETES"},
-    {"clave": "05-004", "nombre": "AIDEE SOLÍS CÁRDENAS-MATÍAS ROMERO (U HAB)"},
-    {"clave": "05-005", "nombre": "ARAGON INGUARAN"},
-    {"clave": "05-006", "nombre": "ARAGON LA VILLA (ARAGON)"},
-    {"clave": "05-007", "nombre": "ARBOLEDAS DE CUAUTEPEC"},
-    {"clave": "05-008", "nombre": "ARBOLEDAS DE CUAUTEPEC (AMPL)"},
-    {"clave": "05-009", "nombre": "ARROYO GUADALUPE (U HAB)"},
-    {"clave": "05-010", "nombre": "BELISARIO DOMINGUEZ"},
-    {"clave": "05-011", "nombre": "BENITO JUAREZ"},
-    {"clave": "05-012", "nombre": "BENITO JUAREZ (AMPL)"},
-    {"clave": "05-013", "nombre": "BONDOJITO"}
-]
-              
+    "01-001 - 18 DE MARZO (RDCIAL)",
+    "01-002 - 16 DE SEPTIEMBRE (RDCIAL)",
+    "01-003 - ACUEDUCTO DE GUADALUPE (RDCIAL)",
+    "01-004 - ADOLFO LOPEZ MATEOS (RDCIAL)",
+    "01-005 - AMERICANA (RDCIAL)",
+    "01-006 - ARRILLAGA (RDCIAL)",
+    "01-007 - ATENCO (RDCIAL)",
+    "01-008 - ATLIXCO (RDCIAL)",
+    "01-450 - ZAPATA (RDCIAL)"
+  ]
+  

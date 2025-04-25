@@ -71,4 +71,34 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Credenciales incorrectas');
     }
   }
+
+  // Función para cargar las colonias desde el archivo JSON
+  async function cargarColonias() {
+    try {
+      const response = await fetch('data/colonias.json');  // Asegúrate de que la ruta sea correcta
+      const colonias = await response.json();  // Parseamos el JSON
+
+      const coloniaSelect = document.getElementById("colonia-select");
+      const filtroColonia = document.getElementById("filtro-colonia");
+
+      // Agregar opciones al select de colonias
+      colonias.forEach(colonia => {
+        const option = document.createElement("option");
+        option.value = colonia;
+        option.textContent = colonia;
+        coloniaSelect.appendChild(option);
+
+        // Agregar opciones al filtro de colonias
+        const filtroOption = document.createElement("option");
+        filtroOption.value = colonia;
+        filtroOption.textContent = colonia;
+        filtroColonia.appendChild(filtroOption);
+      });
+    } catch (error) {
+      console.error("Error al cargar las colonias:", error);
+    }
+  }
+
+  // Llamar la función cuando se carga la página
+  cargarColonias();
 });
