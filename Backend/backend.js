@@ -1,127 +1,116 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const API_BASE = ''; // si estás en local, lo dejamos vacío
-  const form = document.getElementById('formulario');
-  const reportesDiv = document.getElementById('reportes');
-  const modal = document.getElementById('modalLogin');
-  const cerrarModal = document.getElementById('cerrarModal');
-  const loginBtn = document.getElementById('loginBtn');
-  let idReporteAEliminar = null;
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const sqlite3 = require('sqlite3').verbose();
+const fs = require('fs');
+const cors = require('cors');
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(form);
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-    const calle = formData.get('calle') || '';
-    const numero = formData.get('no_exterior') || '';
-    const referencias = formData.get('referencias') || '';
-    const direccion = `${calle} ${numero}, Ref: ${referencias}`.trim();
-    formData.append('direccion', direccion);
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-    try {
-      const res = await fetch(`${API_BASE}/reportes`, {
-        method: 'POST',
-        body: formData
-      });
-      const data = await res.json();
-      if (res.ok) {
-        alert('Reporte guardado');
-        form.reset();
-        cargarReportes();
-      } else {
-        alert(data.error || 'Error al guardar');
-      }
-    } catch (err) {
-      alert('Error al conectar con el servidor');
-    }
+// Base de datos
+const dbPath = path.join(__dirname, 'database', 'reportes.db');
+const db = new sqlite3.Database(dbPath);
+
+// Carga de imágenes
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'uploads/'),
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
+  }
+});
+const upload = multer({ storage });
+
+// Crear tabla si no existe
+db.run(`CREATE TABLE IF NOT EXISTS reportes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  servicio TEXT,
+  origen TEXT,
+  folio TEXT,
+  colonia TEXT,
+  direccion TEXT,
+  descripcion TEXT,
+  fecha TEXT,
+  imagen TEXT
+)`);
+
+// Ruta para agregar reporte
+app.post('/agregar-reporte', upload.single('foto'), (req, res) => {
+  const { servicio, origen, folio, colonia, direccion, descripcion, fecha } = req.body;
+  const imagen = req.file ? req.file.filename : '';
+
+  const query = `
+    INSERT INTO reportes (servicio, origen, folio, colonia, direccion, descripcion, fecha, imagen)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+
+  db.run(query, [servicio, origen, folio, colonia, direccion, descripcion, fecha, imagen], function (err) {
+    if (err) return res.status(500).json({ error: 'Error al insertar el reporte' });
+    res.redirect('/');
   });
+});
 
-  async function cargarReportes() {
-    try {
-      const res = await fetch(`${API_BASE}/reportes`);
-      const reportes = await res.json();
-      reportesDiv.innerHTML = '';
+// Ruta para obtener todos los reportes
+app.get('/reportes', (req, res) => {
+  db.all('SELECT * FROM reportes ORDER BY id DESC', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Error al obtener reportes' });
+    res.json(rows);
+  });
+});
 
-      reportes.forEach(rep => {
-        const div = document.createElement('div');
-        div.className = 'reporte';
-        div.innerHTML = `
-          <strong>${rep.tipo_servicio || rep.tipo}</strong><br>
-          <small>${rep.fecha}</small><br>
-          Dirección: ${rep.direccion || 'N/A'}<br>
-          Solicitante: ${rep.solicitante || ''}<br>
-          ${rep.foto ? `<img src="/uploads/${rep.foto}" width="100">` : ''}
-          <br>
-          <button class="eliminar" data-id="${rep.id}">Eliminar</button>
-        `;
-        reportesDiv.appendChild(div);
-      });
+// Ruta para filtrar reportes por colonia o fecha
+app.get('/filtrar-reportes', (req, res) => {
+  const { colonia, fecha } = req.query;
+  let query = 'SELECT * FROM reportes WHERE 1=1';
+  const params = [];
 
-      document.querySelectorAll('.eliminar').forEach(btn => {
-        btn.addEventListener('click', () => {
-          idReporteAEliminar = btn.getAttribute('data-id');
-          modal.style.display = 'block';
-        });
-      });
-    } catch (err) {
-      console.error('Error al cargar los reportes:', err);
-      alert('Error al cargar los reportes');
-    }
+  if (colonia) {
+    query += ' AND colonia = ?';
+    params.push(colonia);
   }
 
-  cerrarModal.onclick = () => {
-    modal.style.display = 'none';
-  };
-
-  const origenSelect = document.getElementById("origen");
-  const folioContainer = document.getElementById("folio-container");
-
-  function toggleFolioField() {
-    const selectedValue = origenSelect.value;
-    if (selectedValue === "officio" || selectedValue === "dmu") {
-      folioContainer.style.display = "block";
-    } else {
-      folioContainer.style.display = "none";
-    }
+  if (fecha) {
+    query += ' AND fecha = ?';
+    params.push(fecha);
   }
 
-  origenSelect.addEventListener("change", toggleFolioField);
-  toggleFolioField();
+  query += ' ORDER BY id DESC';
 
-  loginBtn.onclick = async () => {
-    const usuario = document.getElementById('usuario').value;
-    const contrasena = document.getElementById('contrasena').value;
-    if (!idReporteAEliminar) return;
+  db.all(query, params, (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Error al filtrar reportes' });
+    res.json(rows);
+  });
+});
 
-    const res = await fetch(`${API_BASE}/eliminar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario, contrasena, id: idReporteAEliminar })
+// Ruta para eliminar un reporte (con autenticación simple)
+app.post('/eliminar-reporte', (req, res) => {
+  const { id, usuario, contrasena } = req.body;
+
+  if (usuario !== 'oro4' || contrasena !== 'luminarias') {
+    return res.status(401).json({ error: 'Autenticación incorrecta' });
+  }
+
+  db.get('SELECT imagen FROM reportes WHERE id = ?', [id], (err, row) => {
+    if (err) return res.status(500).json({ error: 'Error al buscar imagen' });
+
+    if (row && row.imagen) {
+      const rutaImagen = path.join(__dirname, 'uploads', row.imagen);
+      if (fs.existsSync(rutaImagen)) fs.unlinkSync(rutaImagen);
+    }
+
+    db.run('DELETE FROM reportes WHERE id = ?', [id], function (err) {
+      if (err) return res.status(500).json({ error: 'Error al eliminar reporte' });
+      res.json({ mensaje: 'Reporte eliminado correctamente' });
     });
+  });
+});
 
-    const data = await res.json();
-    if (res.ok) {
-      alert('Reporte eliminado');
-      modal.style.display = 'none';
-      cargarReportes();
-    } else {
-      alert(data.error || 'Error de autenticación');
-    }
-  };
-
-  window.descargarPDF = function () {
-    const id = document.getElementById('pdf-id').value;
-    if (!id) return alert('Ingresa un ID válido');
-    window.location.href = `${API_BASE}/reporte/${id}/pdf`;
-  };
-
-  window.descargarExcel = function () {
-    const fecha = document.getElementById('fecha-excel').value;
-    const colonia = document.getElementById('colonia-excel').value;
-    const params = new URLSearchParams();
-    if (fecha) params.append('fecha', fecha);
-    if (colonia) params.append('colonia', colonia);
-    window.location.href = `${API_BASE}/api/excel?${params.toString()}`;
-  };
-
-  cargarReportes();
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
