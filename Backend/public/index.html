@@ -3,96 +3,90 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mesa de Servicio GAM</title>
+  <title>Mesa de Servicio</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header>
-    <img src="logo_gam.png" alt="Logo GAM" class="logo" />
-    <h1>Mesa de Servicio GAM</h1>
-  </header>
+  <div class="header">
+    <img src="https://lh4.googleusercontent.com/proxy/QmCobaNRjueDkw5RSRUcBK-jXVsdEx7k-mR0lvX10Dvp5LZ1pKqzVsGQN4J0YyU4JAdZZ-Sj_J9qggK9R2mdb9nmg_IbwDEN00KAp0dPetAJg-0" alt="Logo GAM">
+    Alcaldía Gustavo A. Madero - Reportes Ciudadanos
+  </div>
+  
+  <h1>Mesa de Servicio</h1>
+  
+  <!-- Modal para login -->
+  <div id="modalLogin" class="modal">
+    <div class="modal-content">
+      <span id="cerrarModal">&times;</span>
+      <h3>Ingresar usuario y contraseña para eliminar</h3>
+      <input type="text" id="usuario" placeholder="Usuario" />
+      <input type="password" id="contrasena" placeholder="Contraseña" />
+      <button id="loginBtn">Ingresar</button>
+    </div>
+  </div>
 
-  <main>
-    <form id="formularioReporte" enctype="multipart/form-data" method="POST" action="/api/reportes">
-      <label for="direccion">Dirección:</label>
-      <input type="text" name="direccion" id="direccion" required />
+  <form id="formulario" enctype="multipart/form-data">
+    <input type="text" name="calle" placeholder="Calle" required />
+    <input type="text" name="no_exterior" placeholder="No exterior" required />
+    <input type="text" name="referencias" placeholder="Referencias" />
+    
+    <!-- Colonia con lista -->
+    <select name="colonia" required>
+      <option value="">Selecciona la colonia</option>
+      <option value="ACUEDUCTO DE GUADALUPE">ACUEDUCTO DE GUADALUPE</option>
+      <option value="SAN JUAN DE ARAGÓN">SAN JUAN DE ARAGÓN</option>
+      <option value="GABRIEL HERNÁNDEZ">GABRIEL HERNÁNDEZ</option>
+      <option value="VILLA DE ARAGÓN">VILLA DE ARAGÓN</option>
+      <option value="VASCO DE QUIROGA">VASCO DE QUIROGA</option>
+      <!-- Puedes agregar todas las demás aquí -->
+    </select>
 
-      <label for="colonia">Colonia:</label>
-      <select name="colonia" id="colonia" required>
-        <option value="">Selecciona una colonia</option>
-      </select>
-
-      <label for="origen">Origen del reporte:</label>
-      <select name="origen" id="origen" required>
-        <option value="">Selecciona origen</option>
-        <option value="ciudadano">Ciudadano</option>
-        <option value="officio">Officio</option>
-        <option value="dmu">DMU</option>
-      </select>
-
-      <div id="folioField" style="display: none;">
-        <label for="folio">Folio:</label>
-        <input type="text" name="folio" id="folio" />
-      </div>
-
-      <label for="servicio">Tipo de servicio:</label>
-      <select name="servicio" id="servicio" required>
-        <option value="">Selecciona servicio</option>
+    <input type="text" name="solicitante" placeholder="Nombre del solicitante" />
+    <input type="number" name="telefono" placeholder="Teléfono" />
+    
+    <!-- Tipo de servicio -->
+    <select name="tipo" required>
+        <option value="">Selecciona el tipo de servicio</option>
         <option value="luminarias">Luminarias</option>
         <option value="baches">Baches</option>
         <option value="banquetas">Banquetas</option>
         <option value="fugas">Fugas</option>
-      </select>
+    </select>
 
-      <label for="imagen">Foto (opcional):</label>
-      <input type="file" name="imagen" accept="image/*" />
+    <!-- Origen del reporte -->
+    <select name="origen" id="origen" required>
+        <option value="">Selecciona el origen del reporte</option>
+        <option value="suac">SUAC</option>
+        <option value="officio">Officio</option>
+        <option value="dmu">DMU</option>
+        <option value="emergencia">Emergencia</option>
+        <option value="direccion">Dirección</option>
+        <option value="alcaldia">Alcaldía</option>
+        <option value="zeus">Zeus</option>
+    </select>
 
-      <button type="submit">Enviar reporte</button>
-    </form>
+    <div id="folio-container" style="display: none;">
+      <label for="folio">Folio:</label>
+      <input type="text" id="folio" name="folio">
+    </div>    
+      
+    <input type="file" name="foto" accept="image/*" />
+    <button type="submit" class="btn">Guardar reporte</button>
+  </form>
 
-    <section id="filtrosExportar">
-      <h2>Exportar reportes</h2>
-      <label for="filtroFecha">Filtrar por fecha:</label>
-      <input type="date" id="filtroFecha" name="filtroFecha" />
+  <hr />
 
-      <label for="filtroColonia">Filtrar por colonia:</label>
-      <select id="filtroColonia" name="filtroColonia">
-        <option value="">Todas</option>
-      </select>
+  <div id="reportes"></div>
+  
+  <!-- Exportar PDF por ID -->
+  <input type="number" id="pdf-id" placeholder="ID del reporte">
+  <button class="btn" onclick="descargarPDF()">Descargar PDF</button>
 
-      <button id="btnExportar">Exportar a Excel</button>
-      <button id="btnExportarPDF">Exportar a PDF</button>
-    </section>
-
-    <section id="reportes">
-      <h2>Reportes Recientes</h2>
-      <div id="contenedorReportes">
-        <!-- Aquí se insertan los reportes desde el backend -->
-      </div>
-    </section>
-  </main>
+  <!-- Exportar Excel filtrado -->
+  <input type="date" id="fecha-excel">
+  <input type="text" id="colonia-excel" placeholder="Colonia">
+  <button class="btn" onclick="descargarExcel()">Descargar Excel</button>
 
   <script src="script.js"></script>
-  <script>
-    // Cargar colonias desde el archivo JSON
-    fetch('/data/colonias.json')
-      .then(res => res.json())
-      .then(data => {
-        const selectColonia = document.getElementById('colonia');
-        const filtroColonia = document.getElementById('filtroColonia');
-        data.forEach(colonia => {
-          const option1 = document.createElement('option');
-          option1.value = colonia;
-          option1.textContent = colonia;
-          selectColonia.appendChild(option1);
-
-          const option2 = document.createElement('option');
-          option2.value = colonia;
-          option2.textContent = colonia;
-          filtroColonia.appendChild(option2);
-        });
-      })
-      .catch(err => console.error('Error al cargar colonias:', err));
-  </script>
 </body>
 </html>
