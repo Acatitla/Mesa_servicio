@@ -10,7 +10,7 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Configurar conexión a PostgreSQL
+// Conexión a PostgreSQL
 const pool = new Pool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
@@ -20,7 +20,7 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// Configurar subida de imágenes con multer
+// Configurar Multer para subir imágenes
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = './uploads';
@@ -28,11 +28,10 @@ const storage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    const unique = Date.now() + path.extname(file.originalname);
-    cb(null, unique);
+    const uniqueName = Date.now() + path.extname(file.originalname);
+    cb(null, uniqueName);
   }
 });
-
 const upload = multer({ storage });
 
 // Middleware
@@ -57,21 +56,41 @@ pool.query(`
   if (err) console.error('Error al crear tabla:', err);
 });
 
-// Obtener todos los reportes
-app.get('/reportes', async (req, res) => {
+// Obtener reportes (filtrar si se envía fecha o colonia)
+app.get('/filtrar-reportes', async (req, res) => {
+  const { fecha, colonia } = req.query;
   try {
-    const { rows } = await pool.query('SELECT * FROM reportes ORDER BY id DESC');
+    let query = 'SELECT * FROM reportes';
+    let params = [];
+    let conditions = [];
+
+    if (fecha) {
+      conditions.push(`fecha = $${params.length + 1}`);
+      params.push(fecha);
+    }
+    if (colonia) {
+      conditions.push(`colonia ILIKE $${params.length + 1}`);
+      params.push(`%${colonia}%`);
+    }
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+    query += ' ORDER BY id DESC';
+
+    const { rows } = await pool.query(query, params);
     res.json(rows);
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
     res.sendStatus(500);
   }
 });
 
-// Agregar nuevo reporte
-app.post('/reportes', upload.single('imagen'), async (req, res) => {
-  const { tipo, direccion, colonia, fecha, origen, folio } = req.body;
+// Guardar nuevo reporte
+app.post('/reportes', upload.single('foto'), async (req, res) => {
+  const { tipo, calle, no_exterior, referencias, colonia, fecha, solicitante, telefono, origen, folio } = req.body;
   const imagen = req.file ? req.file.filename : null;
+
+  const direccion = `${calle} ${no_exterior} ${referencias}`.trim();
 
   try {
     await pool.query(
@@ -79,34 +98,33 @@ app.post('/reportes', upload.single('imagen'), async (req, res) => {
       [tipo, direccion, colonia, fecha, origen, folio, imagen]
     );
     res.redirect('/');
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
     res.sendStatus(500);
   }
 });
 
-// Eliminar reporte (con autenticación básica)
-app.post('/eliminar/:id', (req, res) => {
+// Eliminar reporte (requiere login)
+app.post('/eliminar/:id', async (req, res) => {
   const { usuario, contrasena } = req.body;
   if (usuario === 'oro4' && contrasena === 'luminarias') {
-    pool.query('DELETE FROM reportes WHERE id = $1', [req.params.id], (err) => {
-      if (err) {
-        console.error(err);
-        return res.sendStatus(500);
-      }
+    try {
+      await pool.query('DELETE FROM reportes WHERE id = $1', [req.params.id]);
       res.redirect('/');
-    });
+    } catch (error) {
+      console.error(error);
+      res.sendStatus(500);
+    }
   } else {
     res.send('Credenciales incorrectas');
   }
 });
 
-// Descargar PDF individual
+// Descargar PDF de un reporte
 app.get('/reporte/:id/pdf', async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM reportes WHERE id = $1', [req.params.id]);
     const reporte = rows[0];
-
     if (!reporte) return res.sendStatus(404);
 
     const doc = new PDFDocument();
@@ -131,30 +149,30 @@ app.get('/reporte/:id/pdf', async (req, res) => {
     }
 
     doc.end();
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
     res.sendStatus(500);
   }
 });
 
-// Descargar Excel filtrado por fecha o colonia
+// Descargar reportes filtrados en Excel
 app.get('/reporte/excel', async (req, res) => {
   const { fecha, colonia } = req.query;
 
   try {
     let query = 'SELECT * FROM reportes';
     let params = [];
+    let conditions = [];
 
-    if (fecha || colonia) {
-      const conditions = [];
-      if (fecha) {
-        conditions.push('fecha = $1');
-        params.push(fecha);
-      }
-      if (colonia) {
-        conditions.push(`colonia ILIKE $${params.length + 1}`);
-        params.push(colonia);
-      }
+    if (fecha) {
+      conditions.push(`fecha = $${params.length + 1}`);
+      params.push(fecha);
+    }
+    if (colonia) {
+      conditions.push(`colonia ILIKE $${params.length + 1}`);
+      params.push(`%${colonia}%`);
+    }
+    if (conditions.length > 0) {
       query += ' WHERE ' + conditions.join(' AND ');
     }
 
@@ -174,22 +192,20 @@ app.get('/reporte/excel', async (req, res) => {
       { header: 'Imagen', key: 'imagen' }
     ];
 
-    rows.forEach(row => {
-      worksheet.addRow(row);
-    });
+    rows.forEach(row => worksheet.addRow(row));
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=reportes.xlsx');
 
     await workbook.xlsx.write(res);
     res.end();
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
     res.sendStatus(500);
   }
 });
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`Servidor escuchando en puerto ${PORT}`);
+  console.log(`Servidor corriendo en puerto ${PORT}`);
 });

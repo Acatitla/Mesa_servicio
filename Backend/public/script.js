@@ -9,7 +9,133 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnFiltrar.addEventListener('click', () => {
     const colonia = filtroColonia.value;
-    const fecha = filtroFecha.value;
+    const fecha =// Mostrar el campo de folio si el origen es Oficio o DMU
+    function mostrarFolio() {
+        const origen = document.getElementById('origen').value;
+        const campoFolio = document.getElementById('campoFolio');
+        if (origen === 'Oficio' || origen === 'DMU') {
+            campoFolio.style.display = 'block';
+        } else {
+            campoFolio.style.display = 'none';
+        }
+    }
+    
+    // Cargar todos los reportes al inicio
+    async function cargarReportes() {
+        try {
+            const response = await fetch('/reportes');
+            const reportes = await response.json();
+            mostrarReportes(reportes);
+        } catch (error) {
+            console.error('Error al cargar reportes:', error);
+        }
+    }
+    
+    // Mostrar los reportes en la tabla
+    function mostrarReportes(reportes) {
+        const tbody = document.querySelector('#tablaReportes tbody');
+        tbody.innerHTML = '';
+    
+        reportes.forEach(reporte => {
+            const tr = document.createElement('tr');
+    
+            tr.innerHTML = `
+                <td>${reporte.tipo}</td>
+                <td>${reporte.calle} ${reporte.no_exterior || ''} ${reporte.referencias || ''}</td>
+                <td>${reporte.colonia}</td>
+                <td>${reporte.fecha}</td>
+                <td>${reporte.origen}</td>
+                <td>${reporte.folio || ''}</td>
+                <td>${reporte.foto ? `<img src="${reporte.foto}" style="width:100px;">` : 'Sin foto'}</td>
+                <td><button onclick="eliminarReporte(${reporte.id})">Eliminar</button></td>
+            `;
+    
+            tbody.appendChild(tr);
+        });
+    }
+    
+    // Eliminar un reporte (requiere autenticación)
+    async function eliminarReporte(id) {
+        const usuario = prompt('Usuario:');
+        const password = prompt('Contraseña:');
+    
+        if (!usuario || !password) {
+            alert('Debes ingresar usuario y contraseña');
+            return;
+        }
+    
+        try {
+            const response = await fetch(`/reportes/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ usuario, password })
+            });
+    
+            const data = await response.json();
+            alert(data.message || 'Eliminado');
+    
+            cargarReportes();
+        } catch (error) {
+            console.error('Error al eliminar reporte:', error);
+        }
+    }
+    
+    // Filtrar reportes por fecha o colonia
+    async function filtrarReportes() {
+        const fecha = document.getElementById('filtroFecha').value;
+        const colonia = document.getElementById('filtroColonia').value;
+    
+        let url = '/reportes';
+        const params = [];
+    
+        if (fecha) params.push(`fecha=${fecha}`);
+        if (colonia) params.push(`colonia=${encodeURIComponent(colonia)}`);
+    
+        if (params.length > 0) {
+            url += '?' + params.join('&');
+        }
+    
+        try {
+            const response = await fetch(url);
+            const reportes = await response.json();
+            mostrarReportes(reportes);
+        } catch (error) {
+            console.error('Error al filtrar reportes:', error);
+        }
+    }
+    
+    // Descargar los reportes filtrados en Excel
+    async function descargarExcel() {
+        const fecha = document.getElementById('filtroFecha').value;
+        const colonia = document.getElementById('filtroColonia').value;
+    
+        let url = '/descargarExcel';
+        const params = [];
+    
+        if (fecha) params.push(`fecha=${fecha}`);
+        if (colonia) params.push(`colonia=${encodeURIComponent(colonia)}`);
+    
+        if (params.length > 0) {
+            url += '?' + params.join('&');
+        }
+    
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = 'reportes.xlsx';
+            link.click();
+        } catch (error) {
+            console.error('Error al descargar Excel:', error);
+        }
+    }
+    
+    // Cargar los reportes automáticamente al entrar a la página
+    window.onload = cargarReportes;
+     filtroFecha.value;
     fetchReportes(colonia, fecha);
   });
 

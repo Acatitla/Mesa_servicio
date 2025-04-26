@@ -1,23 +1,30 @@
-/* Barra superior */
+
 .header {
-  background-color: #0b3d0b;
-  color: white;
+  background-color: #ffffff; /* Fondo blanco para que los logos se vean */
+  color: #0b3d0b; /* Texto verde institucional */
   padding: 12px 20px;
   text-align: center;
   font-size: 1.3rem;
   font-weight: bold;
   position: relative;
-  border-bottom: 4px solid #a11212; /* Línea roja como detalle institucional */
+  border-bottom: 4px solid #a11212; /* Línea roja institucional */
 }
 
-.header img {
+.header img.logo-left {
   position: absolute;
   left: 20px;
   top: 50%;
   transform: translateY(-50%);
-  height: 45px;
+  height: 50px;
 }
 
+.header img.logo-right {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 50px;
+}
 
 body {
   font-family: 'Segoe UI', sans-serif;

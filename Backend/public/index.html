@@ -1,90 +1,100 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mesa de Servicio</title>
-  <link rel="stylesheet" href="styles.css" />
+    <meta charset="UTF-8">
+    <title>Mesa de Servicio</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
   <div class="header">
-    <img src="https://lh4.googleusercontent.com/proxy/QmCobaNRjueDkw5RSRUcBK-jXVsdEx7k-mR0lvX10Dvp5LZ1pKqzVsGQN4J0YyU4JAdZZ-Sj_J9qggK9R2mdb9nmg_IbwDEN00KAp0dPetAJg-0" alt="Logo GAM">
-    Alcaldía Gustavo A. Madero - Reportes Ciudadanos
+    <img src="./img/heart.jpeg" class="logo-left" alt="Logo Corazón">
+    Plataforma de Mesa de Servicio
+    <img src="./img/gam.jpeg" class="logo-right" alt="Logo GAM">
   </div>
+    <h1>Mesa de Servicio</h1>
 
-  <h1>Mesa de Servicio</h1>
+    <form id="formulario" action="/reportes" method="POST" enctype="multipart/form-data">
+        <label>Tipo de servicio:</label>
+        <select name="tipo" required>
+            <option value="">Selecciona</option>
+            <option value="Luminarias">Luminarias</option>
+            <option value="Baches">Baches</option>
+            <option value="Banquetas">Banquetas</option>
+            <option value="Fugas">Fugas</option>
+        </select>
 
-  <!-- Modal para login -->
-  <div id="modalLogin" class="modal">
-    <div class="modal-content">
-      <span id="cerrarModal">&times;</span>
-      <h3>Ingresar usuario y contraseña para eliminar</h3>
-      <input type="text" id="usuario" placeholder="Usuario" />
-      <input type="password" id="contrasena" placeholder="Contraseña" />
-      <button id="loginBtn">Ingresar</button>
+        <label>Calle:</label>
+        <input type="text" name="calle" required>
+
+        <label>Número exterior:</label>
+        <input type="text" name="no_exterior">
+
+        <label>Referencias:</label>
+        <input type="text" name="referencias">
+
+        <label>Colonia:</label>
+        <input type="text" name="colonia" required>
+
+        <label>Fecha:</label>
+        <input type="date" name="fecha" required>
+
+        <label>Solicitante:</label>
+        <input type="text" name="solicitante">
+
+        <label>Teléfono:</label>
+        <input type="text" name="telefono">
+
+        <label>Origen:</label>
+        <select name="origen" id="origen" onchange="mostrarFolio()">
+            <option value="">Selecciona</option>
+            <option value="Ciudadano">Ciudadano</option>
+            <option value="Oficio">Oficio</option>
+            <option value="DMU">DMU</option>
+        </select>
+
+        <div id="campoFolio" style="display:none;">
+            <label>Folio:</label>
+            <input type="text" name="folio">
+        </div>
+
+        <label>Foto:</label>
+        <input type="file" name="foto" accept="image/*">
+
+        <button type="submit">Agregar Reporte</button>
+    </form>
+
+    <h2>Reportes</h2>
+
+    <div>
+        <label>Filtrar por fecha:</label>
+        <input type="date" id="filtroFecha">
+
+        <label>Filtrar por colonia:</label>
+        <input type="text" id="filtroColonia">
+
+        <button onclick="filtrarReportes()">Buscar</button>
+        <button onclick="descargarExcel()">Descargar Excel</button>
     </div>
-  </div>
 
-  <!-- FORMULARIO DE REPORTE -->
-  <form id="formulario" enctype="multipart/form-data">
-    <input type="text" name="calle" placeholder="Calle" required />
-    <input type="text" name="no_exterior" placeholder="No exterior" required />
-    <input type="text" name="referencias" placeholder="Referencias" />
-    <select name="colonia" id="colonia-select" required></select>
-    <input type="date" name="fecha" placeholder="Fecha del reporte" required />
-    <input type="text" name="solicitante" placeholder="Nombre del solicitante" />
-    <input type="number" name="telefono" placeholder="Teléfono" />
+    <table id="tablaReportes" border="1">
+        <thead>
+            <tr>
+                <th>Tipo</th>
+                <th>Dirección</th>
+                <th>Colonia</th>
+                <th>Fecha</th>
+                <th>Origen</th>
+                <th>Folio</th>
+                <th>Foto</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Aquí se insertarán los reportes -->
+        </tbody>
+    </table>
 
-    <!-- Tipo de servicio -->
-    <select name="tipo" required>
-        <option value="">Selecciona el tipo de servicio</option>
-        <option value="luminarias">Luminarias</option>
-        <option value="baches">Baches</option>
-        <option value="banquetas">Banquetas</option>
-        <option value="fugas">Fugas</option>
-    </select>
-
-    <!-- Origen del reporte -->
-    <select name="origen" id="origen" required>
-        <option value="">Selecciona el origen del reporte</option>
-        <option value="suac">SUAC</option>
-        <option value="officio">Officio</option>
-        <option value="dmu">DMU</option>
-        <option value="emergencia">Emergencia</option>
-        <option value="direccion">Dirección</option>
-        <option value="alcaldia">Alcaldía</option>
-        <option value="zeus">Zeus</option>
-    </select>
-
-    <div id="folio-container" style="display: none;">
-      <label for="folio">Folio:</label>
-      <input type="text" id="folio" name="folio">
-    </div>    
-
-    <input type="file" name="foto" />
-    <button type="submit" class="btn">Guardar reporte</button>
-  </form>
-
-  <hr />
-
-  <!-- 🟩 FILTRO DE COLONIAS -->
-  <label for="filtro-colonia">Filtrar por colonia:</label>
-  <select id="filtro-colonia">
-    <option value="">-- Ver todas --</option>
-  </select>
-
-  <div id="reportesContainer"></div>
-
-
-  <!-- Exportar PDF por ID -->
-  <input type="number" id="pdf-id" placeholder="ID del reporte">
-  <button class="btn" onclick="descargarPDF()">Descargar PDF</button>
-
-  <!-- Exportar Excel filtrado -->
-  <input type="date" id="fecha-excel">
-  <input type="text" id="colonia-excel" placeholder="Colonia">
-  <button class="btn" onclick="descargarExcel()">Descargar Excel</button>
-
-  <script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
