@@ -10,21 +10,22 @@
   border-bottom: 4px solid #a11212; /* Línea roja institucional */
 }
 
-.header img.logo-left {
+.logo-izquierda {
   position: absolute;
-  left: 20px;
   top: 50%;
+  left: 10px;
   transform: translateY(-50%);
-  height: 50px;
+  height: 45px;
 }
 
-.header img.logo-right {
+.logo-derecha {
   position: absolute;
-  right: 20px;
   top: 50%;
+  right: 10px;
   transform: translateY(-50%);
-  height: 50px;
+  height: 45px;
 }
+
 
 body {
   font-family: 'Segoe UI', sans-serif;
