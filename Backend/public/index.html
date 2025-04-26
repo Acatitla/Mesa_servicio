@@ -1,101 +1,90 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Mesa de Servicio</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Mesa de Servicio</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
   <div class="header">
     <img src="/img/heart.jpeg" alt="Logo Corazón" class="logo-izquierda">
-    Plataforma de Servicio
+    Plataforma de Mesa de Servicio
     <img src="/img/gam.jpeg" alt="Logo GAM" class="logo-derecha">
   </div>
-  
-    <h1>Mesa de Servicio</h1>
 
-    <form id="formulario" action="/reportes" method="POST" enctype="multipart/form-data">
-        <label>Tipo de servicio:</label>
-        <select name="tipo" required>
-            <option value="">Selecciona</option>
-            <option value="Luminarias">Luminarias</option>
-            <option value="Baches">Baches</option>
-            <option value="Banquetas">Banquetas</option>
-            <option value="Fugas">Fugas</option>
-        </select>
+  <h1>Mesa de Servicio</h1>
 
-        <label>Calle:</label>
-        <input type="text" name="calle" required>
+  <form action="/agregar" method="POST" enctype="multipart/form-data">
+    <label>Tipo de servicio:</label>
+    <select name="tipoServicio" required>
+      <option value="">Selecciona</option>
+      <option value="Luminarias">Luminarias</option>
+      <option value="Baches">Baches</option>
+      <option value="Banquetas">Banquetas</option>
+      <option value="Fugas">Fugas</option>
+    </select>
 
-        <label>Número exterior:</label>
-        <input type="text" name="no_exterior">
+    <label>Calle:</label><input type="text" name="direccion" required>
 
-        <label>Referencias:</label>
-        <input type="text" name="referencias">
+    <label>Número exterior:</label><input type="text" name="numeroExterior">
 
-        <label>Colonia:</label>
-        <input type="text" name="colonia" required>
+    <label>Colonia:</label><input type="text" name="colonia" required>
 
-        <label>Fecha:</label>
-        <input type="date" name="fecha" required>
+    <label>Referencias:</label><input type="text" name="referencias">
 
-        <label>Solicitante:</label>
-        <input type="text" name="solicitante">
+    <label>Fecha:</label><input type="date" name="fecha" required>
 
-        <label>Teléfono:</label>
-        <input type="text" name="telefono">
+    <label>Solicitante:</label><input type="text" name="solicitante">
 
-        <label>Origen:</label>
-        <select name="origen" id="origen" onchange="mostrarFolio()">
-            <option value="">Selecciona</option>
-            <option value="Ciudadano">Ciudadano</option>
-            <option value="Oficio">Oficio</option>
-            <option value="DMU">DMU</option>
-        </select>
+    <label>Teléfono:</label><input type="text" name="telefono">
 
-        <div id="campoFolio" style="display:none;">
-            <label>Folio:</label>
-            <input type="text" name="folio">
-        </div>
+    <label>Origen:</label>
+    <select name="origen">
+      <option value="">Selecciona</option>
+      <option value="Oficio">Oficio</option>
+      <option value="DMU">DMU</option>
+      <option value="App">App</option>
+      <option value="Ciudadano">Ciudadano</option>
+    </select>
 
-        <label>Foto:</label>
-        <input type="file" name="foto" accept="image/*">
+    <label>Folio:</label><input type="text" name="folio">
 
-        <button type="submit">Agregar Reporte</button>
-    </form>
+    <label>Foto:</label><input type="file" name="foto">
 
-    <h2>Reportes</h2>
+    <button type="submit">Agregar Reporte</button>
+  </form>
 
-    <div>
-        <label>Filtrar por fecha:</label>
-        <input type="date" id="filtroFecha">
+  <h2>Reportes</h2>
 
-        <label>Filtrar por colonia:</label>
-        <input type="text" id="filtroColonia">
+  <div>
+    <label>Filtrar por fecha:</label>
+    <input type="date" id="filtrarFecha">
 
-        <button onclick="filtrarReportes()">Buscar</button>
-        <button onclick="descargarExcel()">Descargar Excel</button>
-    </div>
+    <label>Filtrar por colonia:</label>
+    <input type="text" id="filtrarColonia">
 
-    <table id="tablaReportes" border="1">
-        <thead>
-            <tr>
-                <th>Tipo</th>
-                <th>Dirección</th>
-                <th>Colonia</th>
-                <th>Fecha</th>
-                <th>Origen</th>
-                <th>Folio</th>
-                <th>Foto</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Aquí se insertarán los reportes -->
-        </tbody>
-    </table>
+    <button>Buscar</button>
+    <button>Descargar Excel</button>
+  </div>
 
-    <script src="script.js"></script>
+  <table border="1">
+    <thead>
+      <tr>
+        <th>Tipo</th>
+        <th>Dirección</th>
+        <th>Colonia</th>
+        <th>Fecha</th>
+        <th>Origen</th>
+        <th>Folio</th>
+        <th>Foto</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="tablaReportes">
+      <!-- Aquí se cargan los reportes -->
+    </tbody>
+  </table>
+
 </body>
 </html>
