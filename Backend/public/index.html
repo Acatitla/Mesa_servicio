@@ -65,40 +65,32 @@
           <textarea name="referencias" id="referencias" rows="3"></textarea>
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="telefono"><i class="fas fa-phone"></i> Teléfono</label>
-            <input type="tel" name="telefono" id="telefono">
-          </div>
-
-          <div class="form-group">
-            <label for="solicitante"><i class="fas fa-user"></i> Solicitante *</label>
-            <input type="text" name="solicitante" id="solicitante" required>
-          </div>
+        <div class="form-group">
+          <label for="telefono"><i class="fas fa-phone"></i> Teléfono</label>
+          <input type="text" name="telefono" id="telefono">
         </div>
 
         <div class="form-group">
-          <label for="foto"><i class="fas fa-camera"></i> Foto (opcional)</label>
-          <input type="file" name="foto" id="foto" accept="image/*">
+          <label for="foto"><i class="fas fa-image"></i> Foto</label>
+          <input type="file" name="foto" id="foto">
         </div>
 
-        <button type="submit" class="btn-submit">
-          <i class="fas fa-save"></i> Agregar Reporte
-        </button>
+        <button type="submit" class="btn-submit"><i class="fas fa-save"></i> Guardar Reporte</button>
       </form>
     </section>
 
     <section class="reportes-container">
-      <h2><i class="fas fa-list"></i> Reportes Registrados</h2>
-      <div class="acciones">
-        <button id="descargarExcel" class="btn-excel">
-          <i class="fas fa-file-excel"></i> Descargar Excel
-        </button>
+      <h2><i class="fas fa-list"></i> Reportes</h2>
+      <div id="reportes" class="reportes">
+        <!-- Los reportes se cargarán aquí -->
       </div>
-      <div id="reportes" class="reportes-list"></div>
     </section>
   </main>
 
-  <script src="/script.js"></script>
+  <footer>
+    <p>&copy; 2025 Mesa de Servicio | Todos los derechos reservados.</p>
+  </footer>
+
+  <script src="script.js"></script>
 </body>
 </html>

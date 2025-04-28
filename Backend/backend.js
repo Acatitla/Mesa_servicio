@@ -1,19 +1,20 @@
 import express from 'express';
 import multer from 'multer';
 import pkg from 'pg';
+import path from 'path';
+import fs from 'fs';
+import PDFDocument from 'pdfkit';
+import ExcelJS from 'exceljs';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const { Pool } = pkg;
-const path = require('path');
-const fs = require('fs');
-const PDFDocument = require('pdfkit');
-const ExcelJS = require('exceljs');
-require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
 // Configuración de directorios para Render
-const __dirname = path.resolve();
 const uploadsDir = path.join(__dirname, 'uploads');
 const publicDir = path.join(__dirname, 'public');
 const dataDir = path.join(__dirname, 'data');
