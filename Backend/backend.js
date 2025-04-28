@@ -1,3 +1,5 @@
+// 📄 backend.js
+
 import express from 'express';
 import multer from 'multer';
 import cors from 'cors';
@@ -6,7 +8,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
-import { pool } from './db.js';  // Importamos la conexión de la base de datos
+import { pool } from './db.js';
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -168,10 +170,30 @@ app.get('/descargar-pdf/:id', async (req, res) => {
   }
 });
 
-// 🔵 Descargar reportes en Excel
+// 🔵 Descargar reportes en Excel (filtrar por colonia y tipo de servicio)
 app.get('/descargar-excel', async (req, res) => {
+  const { colonia, tipo_servicio } = req.query;
+
   try {
-    const { rows } = await pool.query('SELECT * FROM reportes');
+    let query = 'SELECT * FROM reportes';
+    const params = [];
+
+    if (colonia || tipo_servicio) {
+      const conditions = [];
+
+      if (colonia) {
+        params.push(colonia);
+        conditions.push(`direccion = $${params.length}`);
+      }
+      if (tipo_servicio) {
+        params.push(tipo_servicio);
+        conditions.push(`tipo_servicio = $${params.length}`);
+      }
+
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    const { rows } = await pool.query(query, params);
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Reportes');
@@ -182,7 +204,7 @@ app.get('/descargar-excel', async (req, res) => {
       { header: 'Fecha', key: 'fecha' },
       { header: 'Tipo Servicio', key: 'tipo_servicio' },
       { header: 'Origen Reporte', key: 'origen_reporte' },
-      { header: 'Folio', key: 'folio' },
+      { header: 'Folio', key: 'folio' }
     ];
 
     rows.forEach((reporte) => {

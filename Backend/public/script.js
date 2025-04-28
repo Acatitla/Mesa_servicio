@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Configurar eventos
   document.getElementById('formulario').addEventListener('submit', agregarReporte);
   document.getElementById('descargarExcel').addEventListener('click', descargarExcel);
-  
+
   // Configurar fecha mínima como hoy
   const fechaInput = document.getElementById('fecha');
   if (fechaInput) {
@@ -20,9 +20,9 @@ async function cargarDatosFormulario() {
   try {
     const response = await fetch('/form-data');
     if (!response.ok) throw new Error('Error al cargar datos del formulario');
-    
+
     const data = await response.json();
-    
+
     // Cargar colonias
     const coloniaSelect = document.getElementById('colonia');
     coloniaSelect.innerHTML = '<option value="" disabled selected>Seleccione una colonia...</option>';
@@ -32,17 +32,17 @@ async function cargarDatosFormulario() {
       option.textContent = c.nombre || c;
       coloniaSelect.appendChild(option);
     });
-    
+
     // Cargar tipos de servicio
     const tipoServicioSelect = document.getElementById('tipoServicio');
     tipoServicioSelect.innerHTML = '<option value="" disabled selected>Seleccione un tipo...</option>';
-    data.tiposServicio.forEach(t => {
+    data.tipos_servicio.forEach(t => {
       const option = document.createElement('option');
       option.value = t;
       option.textContent = t;
       tipoServicioSelect.appendChild(option);
     });
-    
+
     // Cargar orígenes
     const origenSelect = document.getElementById('origen');
     origenSelect.innerHTML = '<option value="" disabled selected>Seleccione un origen...</option>';
@@ -62,35 +62,35 @@ async function agregarReporte(e) {
   e.preventDefault();
   const form = document.getElementById('formulario');
   const submitBtn = form.querySelector('button[type="submit"]');
-  
+
   try {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Guardando...';
-    
+
     const formData = new FormData(form);
-    
+
     // Validar campos requeridos
     const camposRequeridos = ['origen', 'solicitante', 'colonia', 'direccion', 'tipoServicio', 'fecha'];
     const faltantes = camposRequeridos.filter(campo => !formData.get(campo));
-    
+
     if (faltantes.length > 0) {
       throw new Error(`Faltan campos obligatorios: ${faltantes.join(', ')}`);
     }
-    
+
     // Formatear fecha correctamente
     const fechaInput = form.querySelector('#fecha');
     if (fechaInput.value) {
       const fecha = new Date(fechaInput.value);
       formData.set('fecha', fecha.toISOString());
     }
-    
+
     const response = await fetch('/reportes', {
       method: 'POST',
       body: formData
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       throw new Error(data.error || 'Error al guardar reporte');
     }
@@ -109,19 +109,16 @@ async function agregarReporte(e) {
 
 async function cargarReportes() {
   const contenedor = document.getElementById('reportes');
-  
+
   try {
     contenedor.innerHTML = '<div class="loading">Cargando reportes...</div>';
-    
-    const response = await fetch('/reportes');
-    console.log('Respuesta del servidor:', response);  // Verifica la respuesta completa
 
+    const response = await fetch('/reportes');
     if (!response.ok) {
       throw new Error('Error al cargar reportes');
     }
-    
+
     const data = await response.json();
-    console.log('Datos recibidos:', data);  // Verifica los datos recibidos
 
     if (data.length === 0) {
       contenedor.innerHTML = '<div class="no-data">No hay reportes registrados</div>';
@@ -162,7 +159,7 @@ async function cargarReportes() {
     });
   } catch (error) {
     console.error('Error al cargar reportes:', error);
-    contenedor.innerHTML = ` 
+    contenedor.innerHTML = `
       <div class="error">
         <p>${error.message}</p>
         <button onclick="cargarReportes()" class="btn-reintentar">
@@ -172,7 +169,6 @@ async function cargarReportes() {
     `;
   }
 }
-
 
 async function borrarReporte(id) {
   if (!confirm('¿Estás seguro de eliminar este reporte?')) return;
@@ -195,7 +191,7 @@ async function borrarReporte(id) {
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       throw new Error(data.error || 'Error al eliminar reporte');
     }
@@ -230,9 +226,9 @@ function mostrarAlerta(mensaje, tipo = 'info') {
     <span>${mensaje}</span>
     <button onclick="this.parentElement.remove()">&times;</button>
   `;
-  
+
   document.body.appendChild(alerta);
-  
+
   setTimeout(() => {
     alerta.classList.add('alerta-salida');
     setTimeout(() => alerta.remove(), 300);
