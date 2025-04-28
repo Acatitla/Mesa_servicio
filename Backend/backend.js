@@ -37,6 +37,35 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+// Verificar si la tabla `reportes` existe y crearla si no
+const createTableQuery = `
+  CREATE TABLE IF NOT EXISTS reportes (
+    id SERIAL PRIMARY KEY,
+    folio TEXT,
+    origen TEXT,
+    telefono TEXT,
+    solicitante TEXT,
+    fecha TIMESTAMP,
+    referencias TEXT,
+    colonia TEXT,
+    numero_exterior TEXT,
+    direccion TEXT,
+    tipo_servicio TEXT,
+    foto TEXT
+  );
+`;
+
+async function createTable() {
+  try {
+    await pool.query(createTableQuery);
+    console.log('✅ Tabla "reportes" creada o ya existe');
+  } catch (err) {
+    console.error('❌ Error creando la tabla "reportes":', err);
+  }
+}
+
+createTable(); // Llamada para crear la tabla si no existe
+
 // Middlewares
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -262,56 +291,12 @@ app.get('/descargarExcel', async (req, res) => {
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
-    console.error('Error al generar Excel:', error);
-    res.status(500).send('Error al generar Excel');
+    console.error('Error generando Excel:', error);
+    res.status(500).json({ error: 'Error generando archivo Excel' });
   }
 });
 
-app.get('/descargarPDF/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query('SELECT * FROM reportes WHERE id = $1', [id]);
-    
-    if (result.rows.length === 0) {
-      return res.status(404).send('Reporte no encontrado');
-    }
-
-    const reporte = result.rows[0];
-    const doc = new PDFDocument();
-    const filename = `reporte_${id}.pdf`;
-
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Type', 'application/pdf');
-
-    doc.pipe(res);
-
-    doc.fontSize(16).text(`Reporte #${reporte.id}`, { align: 'center' });
-    doc.fontSize(12).text(`Fecha: ${new Date(reporte.fecha).toLocaleString()}`, { align: 'left' });
-    doc.text(`Folio: ${reporte.folio}`, { align: 'left' });
-    doc.text(`Solicitante: ${reporte.solicitante}`, { align: 'left' });
-    doc.text(`Colonia: ${reporte.colonia}`, { align: 'left' });
-    doc.text(`Dirección: ${reporte.direccion}`, { align: 'left' });
-    doc.text(`Tipo de Servicio: ${reporte.tipo_servicio}`, { align: 'left' });
-
-    if (reporte.foto) {
-      const imagePath = path.join(uploadsDir, reporte.foto);
-      if (fs.existsSync(imagePath)) {
-        doc.addPage()
-           .image(imagePath, {
-             fit: [500, 500],
-             align: 'center',
-             valign: 'center'
-           });
-      }
-    }
-
-    doc.end();
-  } catch (error) {
-    console.error('Error generando PDF:', error);
-    res.status(500).send('Error generando PDF');
-  }
-});
-
+// Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`Servidor escuchando en el puerto ${PORT}`);
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
