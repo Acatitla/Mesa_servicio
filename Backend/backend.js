@@ -10,22 +10,21 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Configuración de conexión a PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
-
-// Configuración de directorios
+// Configuración de directorios para Render
+const __dirname = path.resolve();
 const uploadsDir = path.join(__dirname, 'uploads');
 const publicDir = path.join(__dirname, 'public');
 const dataDir = path.join(__dirname, 'data');
 
-// Crear directorios si no existen
+// Asegurar directorios existan
 [uploadsDir, publicDir, dataDir].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+});
+
+// Configuración de PostgreSQL
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
 });
 
 // Middlewares
@@ -34,7 +33,7 @@ app.use(express.json());
 app.use('/uploads', express.static(uploadsDir));
 app.use(express.static(publicDir));
 
-// Configuración de Multer para subir imágenes
+// Configuración de Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => {
@@ -44,18 +43,18 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const filetypes = new RegExp(process.env.ALLOWED_FILE_TYPES);
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = filetypes.test(file.mimetype);
-
-  if (extname && mimetype) return cb(null, true);
-  cb(new Error(`Error: Solo archivos de tipo ${process.env.ALLOWED_FILE_TYPES} permitidos!`));
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Solo se permiten imágenes (JPEG, JPG, PNG, GIF)'), false);
+  }
 };
 
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE_MB) * 1024 * 1024 }
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
 
 // Cargar colonias desde JSON
@@ -66,12 +65,27 @@ try {
   console.log(`✅ Colonias cargadas: ${colonias.length} registros`);
 } catch (err) {
   console.error('❌ Error leyendo colonias:', err);
-  process.exit(1);
 }
 
 // Rutas
 app.get('/', (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
+});
+
+app.get('/form-data', (req, res) => {
+  try {
+    const tiposServicio = ["Luminarias", "Baches", "Banquetas", "Fugas"];
+    const origenes = ["Aplicación", "DMU", "Oficio", "Teléfono", "Personal"];
+    
+    res.json({
+      colonias,
+      tiposServicio,
+      origenes
+    });
+  } catch (error) {
+    console.error('Error obteniendo datos de formulario:', error);
+    res.status(500).json({ error: 'Error al obtener datos' });
+  }
 });
 
 app.get('/reportes', async (req, res) => {
@@ -94,22 +108,6 @@ app.get('/reportes', async (req, res) => {
   }
 });
 
-app.get('/form-data', (req, res) => {
-  try {
-    const tiposServicio = ["Luminarias", "Baches", "Banquetas", "Fugas"];
-    const origenes = ["Aplicación", "DMU", "Oficio", "Teléfono", "Personal"];
-    
-    res.json({
-      colonias,
-      tiposServicio,
-      origenes
-    });
-  } catch (error) {
-    console.error('Error obteniendo datos de formulario:', error);
-    res.status(500).json({ error: 'Error al obtener datos' });
-  }
-});
-
 app.post('/reportes', upload.single('foto'), async (req, res) => {
   try {
     const { 
@@ -125,16 +123,10 @@ app.post('/reportes', upload.single('foto'), async (req, res) => {
       tipoServicio 
     } = req.body;
 
-    // Validación
-    const camposRequeridos = { origen, solicitante, colonia, direccion, tipoServicio, fecha };
-    const faltantes = Object.entries(camposRequeridos)
-      .filter(([_, value]) => !value)
-      .map(([key]) => key);
-
-    if (faltantes.length > 0) {
+    if (!origen || !solicitante || !colonia || !direccion || !tipoServicio || !fecha) {
       return res.status(400).json({ 
         error: 'Campos obligatorios faltantes',
-        missing: faltantes
+        required: ['origen', 'solicitante', 'colonia', 'direccion', 'tipoServicio', 'fecha']
       });
     }
 
@@ -207,12 +199,20 @@ app.delete('/reportes/:id', async (req, res) => {
 
 app.get('/descargarExcel', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM reportes ORDER BY fecha DESC');
+    const result = await pool.query(`
+      SELECT id, folio, origen, telefono, solicitante, 
+             TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI:SS') as fecha,
+             referencias, colonia, numero_exterior, direccion, 
+             tipo_servicio, foto 
+      FROM reportes 
+      ORDER BY fecha DESC
+    `);
     const reportes = result.rows;
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Reportes');
 
+    // Formato de columnas
     worksheet.columns = [
       { header: 'ID', key: 'id', width: 10 },
       { header: 'Folio', key: 'folio', width: 15 },
@@ -228,7 +228,23 @@ app.get('/descargarExcel', async (req, res) => {
       { header: 'Foto', key: 'foto', width: 30 }
     ];
 
-    reportes.forEach(reporte => worksheet.addRow(reporte));
+    // Añadir datos
+    reportes.forEach(reporte => {
+      worksheet.addRow({
+        ...reporte,
+        foto: reporte.foto ? `http://${req.get('host')}/uploads/${reporte.foto}` : 'Sin imagen'
+      });
+    });
+
+    // Estilo para la primera fila (encabezados)
+    worksheet.getRow(1).eachCell(cell => {
+      cell.font = { bold: true };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFD3D3D3' }
+      };
+    });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=reportes.xlsx');
