@@ -1,16 +1,13 @@
-// backend.js
-
 import express from 'express';
 import multer from 'multer';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import pkg from 'pg';
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
+import { pool } from './db.js';  // Importamos la conexión de la base de datos
 
-const { Pool } = pkg;
 const app = express();
 const PORT = process.env.PORT || 10000;
 
@@ -41,12 +38,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(uploadsDir));
 app.use(express.static(path.join(__dirname, 'public')));
-
-// 📍 Configuración de PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 // 📍 Crear tabla si no existe
 async function createTable() {
