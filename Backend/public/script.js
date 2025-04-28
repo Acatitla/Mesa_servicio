@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function cargarDatosFormulario() {
   try {
-    const response = await fetch('/form-data');
+    const response = await fetch('/formulario');
     if (!response.ok) throw new Error('Error al cargar datos del formulario');
 
     const data = await response.json();
@@ -84,7 +84,7 @@ async function agregarReporte(e) {
       formData.set('fecha', fecha.toISOString());
     }
 
-    const response = await fetch('/reportes', {
+    const response = await fetch('/agregar-reporte', {
       method: 'POST',
       body: formData
     });
@@ -182,12 +182,12 @@ async function borrarReporte(id) {
   }
 
   try {
-    const response = await fetch(`/reportes/${id}`, {
+    const response = await fetch(`/eliminar-reporte/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ usuario: username, contrasena: password })
     });
 
     const data = await response.json();

@@ -18,213 +18,104 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // 📍 Configurar carpeta de uploads
-const uploadsDir = path.join(__dirname, 'public', 'uploads');
+const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+  fs.mkdirSync(uploadsDir);
 }
 
-// 📍 Configuración de almacenamiento de imágenes
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
+app.use('/uploads', express.static(uploadsDir));
+
+// 📍 Configuración de multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}_${file.originalname}`);
-  },
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
 });
+
 const upload = multer({ storage });
 
-// 📍 Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(uploadsDir));
-app.use(express.static(path.join(__dirname, 'public')));
+// 📍 Rutas del servidor
 
-// 📍 Crear tabla si no existe
-async function createTable() {
+app.get('/formulario', async (req, res) => {
   try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS reportes (
-        id SERIAL PRIMARY KEY,
-        direccion TEXT,
-        fecha TEXT,
-        tipo_servicio TEXT,
-        origen_reporte TEXT,
-        folio TEXT,
-        imagen TEXT
-      )
-    `);
-    console.log('✅ Tabla "reportes" verificada/creada.');
+    const [colonias, tipos_servicio, origenes] = await Promise.all([
+      pool.query('SELECT nombre FROM colonias ORDER BY nombre'),
+      pool.query('SELECT nombre FROM tipos_servicio ORDER BY nombre'),
+      pool.query('SELECT nombre FROM origenes ORDER BY nombre')
+    ]);
+
+    res.json({
+      colonias: colonias.rows.map(c => c.nombre),
+      tipos_servicio: tipos_servicio.rows.map(t => t.nombre),
+      origenes: origenes.rows.map(o => o.nombre)
+    });
   } catch (error) {
-    console.error('❌ Error creando la tabla "reportes":', error);
-  }
-}
-
-// 📍 Cargar formulario desde archivo JSON
-let formulario = [];
-try {
-  const data = fs.readFileSync(path.join(__dirname, 'data', 'formulario.json'));
-  formulario = JSON.parse(data);
-  console.log(`✅ Formulario cargado con ${formulario.length} registros`);
-} catch (error) {
-  console.error('❌ Error cargando formulario:', error);
-}
-
-// 📍 Rutas
-
-// 🔵 Obtener reportes
-app.get('/reportes', async (req, res) => {
-  try {
-    const { rows } = await pool.query('SELECT * FROM reportes');
-    res.json(rows);
-  } catch (error) {
-    console.error('❌ Error al obtener reportes:', error);
-    res.status(500).json({ error: 'Error al cargar reportes' });
+    console.error('Error al cargar datos del formulario:', error);
+    res.status(500).json({ error: 'Error al cargar datos' });
   }
 });
 
-// 🔵 Obtener formulario (antes colonias)
-app.get('/formulario', (req, res) => {
-  res.json(formulario);
-});
-
-// 🔵 Agregar reporte
-app.post('/agregar-reporte', upload.single('imagen'), async (req, res) => {
-  const { direccion, fecha, tipo_servicio, origen_reporte, folio } = req.body;
-  const imagen = req.file ? `/uploads/${req.file.filename}` : null;
+app.post('/agregar-reporte', upload.single('foto'), async (req, res) => {
+  const { tipoServicio, solicitante, origen, colonia, direccion, numero_exterior, telefono, referencias, fecha } = req.body;
+  const foto = req.file ? req.file.filename : null;
 
   try {
-    await pool.query(
-      'INSERT INTO reportes (direccion, fecha, tipo_servicio, origen_reporte, folio, imagen) VALUES ($1, $2, $3, $4, $5, $6)',
-      [direccion, fecha, tipo_servicio, origen_reporte, folio, imagen]
-    );
-    res.status(201).json({ mensaje: 'Reporte agregado exitosamente' });
+    const result = await pool.query(`
+      INSERT INTO reportes (tipo_servicio, solicitante, origen, colonia, direccion, numero_exterior, telefono, referencias, fecha, foto)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING id
+    `, [tipoServicio, solicitante, origen, colonia, direccion, numero_exterior, telefono, referencias, fecha, foto]);
+
+    res.status(201).json({ id: result.rows[0].id });
   } catch (error) {
-    console.error('❌ Error al agregar reporte:', error);
+    console.error('Error al agregar reporte:', error);
     res.status(500).json({ error: 'Error al agregar reporte' });
   }
 });
 
-// 🔵 Eliminar reporte (requiere autenticación)
+app.get('/reportes', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM reportes ORDER BY fecha DESC');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error al cargar reportes:', error);
+    res.status(500).json({ error: 'Error al cargar reportes' });
+  }
+});
+
 app.delete('/eliminar-reporte/:id', async (req, res) => {
   const { id } = req.params;
   const { usuario, contrasena } = req.body;
 
   if (usuario !== 'oro4' || contrasena !== 'luminarias') {
-    return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+    return res.status(401).json({ error: 'Credenciales incorrectas' });
   }
 
   try {
-    const reporte = await pool.query('SELECT imagen FROM reportes WHERE id = $1', [id]);
-    if (reporte.rows.length > 0 && reporte.rows[0].imagen) {
-      const imagenPath = path.join(__dirname, 'public', reporte.rows[0].imagen);
-      if (fs.existsSync(imagenPath)) {
-        fs.unlinkSync(imagenPath);
-      }
+    const result = await pool.query('DELETE FROM reportes WHERE id = $1 RETURNING foto', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Reporte no encontrado' });
     }
 
-    await pool.query('DELETE FROM reportes WHERE id = $1', [id]);
-    res.json({ mensaje: 'Reporte eliminado exitosamente' });
+    const foto = result.rows[0].foto;
+    if (foto) {
+      fs.unlinkSync(path.join(uploadsDir, foto));  // Eliminar foto si existe
+    }
+
+    res.status(200).json({ mensaje: 'Reporte eliminado' });
   } catch (error) {
-    console.error('❌ Error al eliminar reporte:', error);
+    console.error('Error al eliminar reporte:', error);
     res.status(500).json({ error: 'Error al eliminar reporte' });
   }
 });
 
-// 🔵 Descargar reporte en PDF
-app.get('/descargar-pdf/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const { rows } = await pool.query('SELECT * FROM reportes WHERE id = $1', [id]);
-    if (rows.length === 0) return res.status(404).send('Reporte no encontrado');
-
-    const reporte = rows[0];
-
-    const doc = new PDFDocument();
-    res.setHeader('Content-Disposition', `attachment; filename=reporte_${id}.pdf`);
-    res.setHeader('Content-Type', 'application/pdf');
-
-    doc.pipe(res);
-
-    doc.fontSize(20).text('Reporte de Servicio', { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(14).text(`Dirección: ${reporte.direccion}`);
-    doc.text(`Fecha: ${reporte.fecha}`);
-    doc.text(`Tipo de Servicio: ${reporte.tipo_servicio}`);
-    doc.text(`Origen del Reporte: ${reporte.origen_reporte}`);
-    if (reporte.folio) doc.text(`Folio: ${reporte.folio}`);
-
-    if (reporte.imagen) {
-      const imagenPath = path.join(__dirname, 'public', reporte.imagen);
-      if (fs.existsSync(imagenPath)) {
-        doc.image(imagenPath, { fit: [100, 100], align: 'center' });
-      }
-    }
-
-    doc.end();
-  } catch (error) {
-    console.error('❌ Error generando PDF:', error);
-    res.status(500).send('Error generando PDF');
-  }
-});
-
-// 🔵 Descargar reportes en Excel (filtrar por colonia y tipo de servicio)
-app.get('/descargar-excel', async (req, res) => {
-  const { colonia, tipo_servicio } = req.query;
-
-  try {
-    let query = 'SELECT * FROM reportes';
-    const params = [];
-
-    if (colonia || tipo_servicio) {
-      const conditions = [];
-
-      if (colonia) {
-        params.push(colonia);
-        conditions.push(`direccion = $${params.length}`);
-      }
-      if (tipo_servicio) {
-        params.push(tipo_servicio);
-        conditions.push(`tipo_servicio = $${params.length}`);
-      }
-
-      query += ' WHERE ' + conditions.join(' AND ');
-    }
-
-    const { rows } = await pool.query(query, params);
-
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Reportes');
-
-    worksheet.columns = [
-      { header: 'ID', key: 'id' },
-      { header: 'Dirección', key: 'direccion' },
-      { header: 'Fecha', key: 'fecha' },
-      { header: 'Tipo Servicio', key: 'tipo_servicio' },
-      { header: 'Origen Reporte', key: 'origen_reporte' },
-      { header: 'Folio', key: 'folio' }
-    ];
-
-    rows.forEach((reporte) => {
-      worksheet.addRow(reporte);
-    });
-
-    res.setHeader('Content-Disposition', 'attachment; filename=reportes.xlsx');
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-
-    await workbook.xlsx.write(res);
-    res.end();
-  } catch (error) {
-    console.error('❌ Error generando Excel:', error);
-    res.status(500).send('Error generando Excel');
-  }
-});
-
-// 📍 Arrancar el servidor
-createTable().then(() => {
-  app.listen(PORT, () => {
-    console.log(`✅ Servidor corriendo en el puerto ${PORT}`);
-  });
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
