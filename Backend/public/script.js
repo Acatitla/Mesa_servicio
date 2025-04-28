@@ -1,77 +1,81 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const coloniaSelect = document.getElementById('coloniaSelect');
-  const formulario = document.getElementById('formulario');
-  const tablaReportes = document.getElementById('tablaReportes');
+document.addEventListener('DOMContentLoaded', () => {
+  cargarColonias();
+  cargarReportes();
 
-  // Cargar colonias
-  fetch('/data/colonias.json')
-      .then(response => response.json())
-      .then(data => {
-          coloniaSelect.innerHTML = '<option value="">Selecciona colonia</option>';
-          data.forEach(colonia => {
-              const option = document.createElement('option');
-              option.value = colonia.nombre;
-              option.textContent = colonia.nombre;
-              coloniaSelect.appendChild(option);
-          });
-      });
+  document.getElementById('formulario').addEventListener('submit', agregarReporte);
+  document.getElementById('descargarExcel').addEventListener('click', descargarExcel);
+  document.getElementById('descargarPDF').addEventListener('click', descargarPDF);
+});
 
-  // Enviar formulario
-  formulario.addEventListener('submit', (e) => {
-      e.preventDefault();
+async function cargarColonias() {
+  const res = await fetch('/colonias');
+  const colonias = await res.json();
+  const select = document.getElementById('colonia');
 
-      const formData = new FormData(formulario);
+  colonias.forEach(c => {
+    const option = document.createElement('option');
+    option.value = c.nombre;
+    option.textContent = c.nombre;
+    select.appendChild(option);
+  });
+}
 
-      fetch('/reportes', {
-          method: 'POST',
-          body: formData
-      })
-      .then(response => {
-          if (!response.ok) throw new Error('Error al enviar reporte');
-          return response.json();
-      })
-      .then(data => {
-          alert('Reporte agregado');
-          formulario.reset();
-          cargarReportes();
-      })
-      .catch(error => {
-          alert('Error al subir reporte');
-          console.error(error);
-      });
+async function agregarReporte(e) {
+  e.preventDefault();
+  const form = document.getElementById('formulario');
+  const formData = new FormData(form);
+
+  await fetch('/reportes', {
+    method: 'POST',
+    body: formData
   });
 
-  function cargarReportes() {
-      fetch('/reportes')
-          .then(response => response.json())
-          .then(data => {
-              let html = `
-                  <table border="1">
-                      <thead>
-                          <tr>
-                              <th>Tipo</th><th>Dirección</th><th>Colonia</th><th>Fecha</th><th>Origen</th><th>Folio</th><th>Foto</th><th>Acciones</th>
-                          </tr>
-                      </thead>
-                      <tbody>
-              `;
-              data.forEach(r => {
-                  html += `
-                      <tr>
-                          <td>${r.tipoServicio}</td>
-                          <td>${r.direccion} ${r.numeroExterior}</td>
-                          <td>${r.colonia}</td>
-                          <td>${r.fecha}</td>
-                          <td>${r.origen}</td>
-                          <td>${r.folio || ''}</td>
-                          <td>${r.foto ? `<img src="/uploads/${r.foto}" width="50">` : ''}</td>
-                          <td><!-- Botón de borrar si quieres --></td>
-                      </tr>
-                  `;
-              });
-              html += `</tbody></table>`;
-              tablaReportes.innerHTML = html;
-          });
-  }
+  form.reset();
+  cargarReportes();
+}
+
+async function cargarReportes() {
+  const res = await fetch('/reportes');
+  const reportes = await res.json();
+  const contenedor = document.getElementById('reportes');
+  contenedor.innerHTML = '';
+
+  reportes.forEach(r => {
+    const div = document.createElement('div');
+    div.classList.add('reporte');
+    div.innerHTML = `
+      <p><strong>Servicio:</strong> ${r.tipo_servicio}</p>
+      <p><strong>Dirección:</strong> ${r.direccion} #${r.numero_exterior}</p>
+      <p><strong>Colonia:</strong> ${r.colonia}</p>
+      <p><strong>Fecha:</strong> ${r.fecha.split('T')[0]}</p>
+      ${r.foto ? `<img src="/uploads/${r.foto}" alt="Foto reporte">` : ''}
+      <button onclick="borrarReporte(${r.id})">Eliminar</button>
+    `;
+    contenedor.appendChild(div);
+  });
+}
+
+async function borrarReporte(id) {
+  const username = prompt('Usuario:');
+  const password = prompt('Contraseña:');
+
+  if (!username || !password) return;
+
+  await fetch(`/reportes/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ username, password })
+  });
 
   cargarReportes();
-});
+}
+
+function descargarExcel() {
+  window.open('/descargarExcel', '_blank');
+}
+
+function descargarPDF() {
+  window.open('/descargarPDF', '_blank');
+}

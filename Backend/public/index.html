@@ -1,69 +1,41 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Mesa de Servicio</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <title>Mesa de Servicio</title>
+  <link rel="stylesheet" href="/public/styles.css">
 </head>
 <body>
+  <header>
+    <img src="/data/img/gam.jpeg" alt="Logo GAM" class="logo">
+    <h1>Mesa de Servicio</h1>
+  </header>
 
-<header>
-    <img src="/public/logo_corazon.png" alt="Logo Corazón" height="50">
-    <img src="/public/logo_gam.png" alt="Logo GAM" height="50">
-</header>
+  <main>
+    <form id="formulario" enctype="multipart/form-data">
+      <!-- Todos los campos para agregar un reporte -->
+      <input type="text" name="tipoServicio" placeholder="Tipo de servicio" required>
+      <input type="text" name="direccion" placeholder="Dirección" required>
+      <input type="text" name="numeroExterior" placeholder="Número Exterior" required>
+      <select name="colonia" id="colonia" required></select>
+      <input type="date" name="fecha" required>
+      <input type="text" name="origen" placeholder="Origen" required>
+      <input type="text" name="folio" placeholder="Folio (si aplica)">
+      <textarea name="referencias" placeholder="Referencias"></textarea>
+      <input type="tel" name="telefono" placeholder="Teléfono">
+      <input type="text" name="solicitante" placeholder="Solicitante">
+      <input type="file" name="foto" accept="image/*">
+      <button type="submit">Agregar Reporte</button>
+    </form>
 
-<h1>Mesa de Servicio</h1>
+    <section id="reportes"></section>
 
-<form id="formulario" enctype="multipart/form-data">
-    <label>Tipo de servicio:
-        <select name="tipoServicio" required>
-            <option value="">Selecciona</option>
-            <option value="Luminarias">Luminarias</option>
-            <option value="Baches">Baches</option>
-            <option value="Banquetas">Banquetas</option>
-            <option value="Fugas">Fugas</option>
-        </select>
-    </label>
+    <div class="botones-descarga">
+      <button id="descargarExcel">Descargar Excel</button>
+      <button id="descargarPDF">Descargar PDF</button>
+    </div>
+  </main>
 
-    <label>Calle: <input type="text" name="direccion" required></label>
-    <label>Número exterior: <input type="text" name="numeroExterior"></label>
-    <label>Referencias: <input type="text" name="referencias"></label>
-    
-    <label>Colonia:
-        <select name="colonia" id="coloniaSelect" required>
-            <option value="">Cargando colonias...</option>
-        </select>
-    </label>
-
-    <label>Fecha: <input type="date" name="fecha" required></label>
-    <label>Solicitante: <input type="text" name="solicitante"></label>
-    <label>Teléfono: <input type="text" name="telefono"></label>
-
-    <label>Origen:
-        <select name="origen" required>
-            <option value="">Selecciona</option>
-            <option value="Oficio">Oficio</option>
-            <option value="DMU">DMU</option>
-            <option value="Ciudadano">Ciudadano</option>
-        </select>
-    </label>
-
-    <label>Folio (si aplica): <input type="text" name="folio" id="folioInput"></label>
-
-    <label>Foto:
-        <input type="file" name="foto" accept="image/*">
-    </label>
-
-    <button type="submit">Agregar Reporte</button>
-</form>
-
-<hr>
-
-<h2>Reportes</h2>
-
-<!-- Aquí cargarás la tabla después -->
-<div id="tablaReportes"></div>
-
-<script src="/public/script.js"></script>
+  <script src="/public/script.js"></script>
 </body>
 </html>
