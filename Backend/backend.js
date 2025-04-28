@@ -1,7 +1,8 @@
 import express from 'express';
 import multer from 'multer';
-import { Pool } from 'pg';
+import pkg from 'pg';
 
+const { Pool } = pkg;
 const path = require('path');
 const fs = require('fs');
 const PDFDocument = require('pdfkit');
