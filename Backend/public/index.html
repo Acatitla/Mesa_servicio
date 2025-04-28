@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mesa de Servicio</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -14,77 +15,85 @@
 
   <main>
     <section class="formulario-container">
-      <h2>Nuevo Reporte</h2>
+      <h2><i class="fas fa-plus-circle"></i> Nuevo Reporte</h2>
       <form id="formulario" enctype="multipart/form-data">
         <div class="form-group">
-          <label for="tipoServicio">Tipo de Servicio *</label>
+          <label for="tipoServicio"><i class="fas fa-tools"></i> Tipo de Servicio *</label>
           <select name="tipoServicio" id="tipoServicio" required>
             <option value="" disabled selected>Seleccione...</option>
           </select>
         </div>
 
         <div class="form-group">
-          <label for="direccion">Dirección *</label>
+          <label for="direccion"><i class="fas fa-map-marker-alt"></i> Dirección *</label>
           <input type="text" name="direccion" id="direccion" required>
         </div>
 
-        <div class="form-group">
-          <label for="numeroExterior">Número Exterior</label>
-          <input type="text" name="numeroExterior" id="numeroExterior">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="numeroExterior"><i class="fas fa-home"></i> Número Exterior</label>
+            <input type="text" name="numeroExterior" id="numeroExterior">
+          </div>
+
+          <div class="form-group">
+            <label for="colonia"><i class="fas fa-city"></i> Colonia *</label>
+            <select name="colonia" id="colonia" required>
+              <option value="" disabled selected>Seleccione...</option>
+            </select>
+          </div>
         </div>
 
         <div class="form-group">
-          <label for="colonia">Colonia *</label>
-          <select name="colonia" id="colonia" required>
-            <option value="" disabled selected>Seleccione...</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="fecha">Fecha *</label>
+          <label for="fecha"><i class="far fa-calendar-alt"></i> Fecha y Hora *</label>
           <input type="datetime-local" name="fecha" id="fecha" required>
         </div>
 
         <div class="form-group">
-          <label for="origen">Origen *</label>
+          <label for="origen"><i class="fas fa-source"></i> Origen *</label>
           <select name="origen" id="origen" required>
             <option value="" disabled selected>Seleccione...</option>
           </select>
         </div>
 
         <div class="form-group">
-          <label for="folio">Folio</label>
+          <label for="folio"><i class="fas fa-file-alt"></i> Folio</label>
           <input type="text" name="folio" id="folio">
         </div>
 
         <div class="form-group">
-          <label for="referencias">Referencias</label>
+          <label for="referencias"><i class="fas fa-info-circle"></i> Referencias</label>
           <textarea name="referencias" id="referencias" rows="3"></textarea>
         </div>
 
-        <div class="form-group">
-          <label for="telefono">Teléfono</label>
-          <input type="tel" name="telefono" id="telefono">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="telefono"><i class="fas fa-phone"></i> Teléfono</label>
+            <input type="tel" name="telefono" id="telefono">
+          </div>
+
+          <div class="form-group">
+            <label for="solicitante"><i class="fas fa-user"></i> Solicitante *</label>
+            <input type="text" name="solicitante" id="solicitante" required>
+          </div>
         </div>
 
         <div class="form-group">
-          <label for="solicitante">Solicitante *</label>
-          <input type="text" name="solicitante" id="solicitante" required>
-        </div>
-
-        <div class="form-group">
-          <label for="foto">Foto (opcional)</label>
+          <label for="foto"><i class="fas fa-camera"></i> Foto (opcional)</label>
           <input type="file" name="foto" id="foto" accept="image/*">
         </div>
 
-        <button type="submit" class="btn-submit">Agregar Reporte</button>
+        <button type="submit" class="btn-submit">
+          <i class="fas fa-save"></i> Agregar Reporte
+        </button>
       </form>
     </section>
 
     <section class="reportes-container">
-      <h2>Reportes Registrados</h2>
+      <h2><i class="fas fa-list"></i> Reportes Registrados</h2>
       <div class="acciones">
-        <button id="descargarExcel" class="btn-excel">Descargar Excel</button>
+        <button id="descargarExcel" class="btn-excel">
+          <i class="fas fa-file-excel"></i> Descargar Excel
+        </button>
       </div>
       <div id="reportes" class="reportes-list"></div>
     </section>

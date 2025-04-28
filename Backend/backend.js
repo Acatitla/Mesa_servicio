@@ -1,4 +1,3 @@
-// backend/backend.js
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
@@ -14,7 +13,9 @@ const PORT = process.env.PORT || 10000;
 // Configuración de conexión a PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 // Configuración de directorios
@@ -22,7 +23,7 @@ const uploadsDir = path.join(__dirname, 'uploads');
 const publicDir = path.join(__dirname, 'public');
 const dataDir = path.join(__dirname, 'data');
 
-// Asegurar que existan los directorios
+// Crear directorios si no existen
 [uploadsDir, publicDir, dataDir].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
@@ -42,17 +43,19 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const fileFilter = (req, file, cb) => {
+  const filetypes = new RegExp(process.env.ALLOWED_FILE_TYPES);
+  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = filetypes.test(file.mimetype);
+
+  if (extname && mimetype) return cb(null, true);
+  cb(new Error(`Error: Solo archivos de tipo ${process.env.ALLOWED_FILE_TYPES} permitidos!`));
+};
+
+const upload = multer({
   storage,
-  fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|gif/;
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = filetypes.test(file.mimetype);
-    
-    if (extname && mimetype) return cb(null, true);
-    cb(new Error('Error: Solo imágenes (JPEG, JPG, PNG, GIF) permitidas!'));
-  },
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+  fileFilter,
+  limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE_MB) * 1024 * 1024 }
 });
 
 // Cargar colonias desde JSON
@@ -67,28 +70,31 @@ try {
 }
 
 // Rutas
-app.get('/', async (req, res) => {
-  try {
-    res.sendFile(path.join(publicDir, 'index.html'));
-  } catch (error) {
-    console.error('Error al cargar página:', error);
-    res.status(500).send('Error al cargar la página');
-  }
+app.get('/', (req, res) => {
+  res.sendFile(path.join(publicDir, 'index.html'));
 });
 
-// Obtener reportes
 app.get('/reportes', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM reportes ORDER BY fecha DESC');
+    const result = await pool.query(`
+      SELECT id, folio, origen, telefono, solicitante, 
+             TO_CHAR(fecha, 'YYYY-MM-DD"T"HH24:MI:SS') as fecha,
+             referencias, colonia, numero_exterior, direccion, 
+             tipo_servicio, foto 
+      FROM reportes 
+      ORDER BY fecha DESC
+    `);
     res.json(result.rows);
   } catch (error) {
     console.error('Error al obtener reportes:', error);
-    res.status(500).json({ error: 'Error al obtener reportes' });
+    res.status(500).json({ 
+      error: 'Error al cargar reportes',
+      details: error.message 
+    });
   }
 });
 
-// Obtener datos para formulario
-app.get('/form-data', async (req, res) => {
+app.get('/form-data', (req, res) => {
   try {
     const tiposServicio = ["Luminarias", "Baches", "Banquetas", "Fugas"];
     const origenes = ["Aplicación", "DMU", "Oficio", "Teléfono", "Personal"];
@@ -104,7 +110,6 @@ app.get('/form-data', async (req, res) => {
   }
 });
 
-// Enviar nuevo reporte
 app.post('/reportes', upload.single('foto'), async (req, res) => {
   try {
     const { 
@@ -120,25 +125,35 @@ app.post('/reportes', upload.single('foto'), async (req, res) => {
       tipoServicio 
     } = req.body;
 
-    // Validación básica
-    if (!origen || !solicitante || !colonia || !direccion || !tipoServicio || !fecha) {
-      return res.status(400).json({ error: 'Faltan campos obligatorios' });
+    // Validación
+    const camposRequeridos = { origen, solicitante, colonia, direccion, tipoServicio, fecha };
+    const faltantes = Object.entries(camposRequeridos)
+      .filter(([_, value]) => !value)
+      .map(([key]) => key);
+
+    if (faltantes.length > 0) {
+      return res.status(400).json({ 
+        error: 'Campos obligatorios faltantes',
+        missing: faltantes
+      });
     }
 
     const foto = req.file ? req.file.filename : null;
+    const fechaFormateada = new Date(fecha).toISOString();
 
-    await pool.query(
+    const result = await pool.query(
       `INSERT INTO reportes (
         folio, origen, telefono, solicitante, fecha, 
         referencias, colonia, numero_exterior, direccion, 
         tipo_servicio, foto
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING id`,
       [
         folio || null, 
         origen, 
         telefono || null, 
         solicitante, 
-        fecha, 
+        fechaFormateada, 
         referencias || null, 
         colonia, 
         numeroExterior || null, 
@@ -148,20 +163,24 @@ app.post('/reportes', upload.single('foto'), async (req, res) => {
       ]
     );
 
-    res.json({ success: true });
+    res.json({ 
+      success: true,
+      id: result.rows[0].id
+    });
   } catch (error) {
     console.error('Error al guardar reporte:', error);
-    res.status(500).json({ error: 'Error al guardar reporte' });
+    res.status(500).json({ 
+      error: 'Error al guardar reporte',
+      details: error.message
+    });
   }
 });
 
-// Borrar reporte
 app.delete('/reportes/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { username, password } = req.body;
 
-    // Validación básica de autenticación
     if (username !== process.env.ADMIN_USER || password !== process.env.ADMIN_PASS) {
       return res.status(401).json({ error: 'Credenciales incorrectas' });
     }
@@ -186,7 +205,6 @@ app.delete('/reportes/:id', async (req, res) => {
   }
 });
 
-// Descargar Excel
 app.get('/descargarExcel', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM reportes ORDER BY fecha DESC');
@@ -223,7 +241,6 @@ app.get('/descargarExcel', async (req, res) => {
   }
 });
 
-// Descargar PDF individual
 app.get('/descargarPDF/:id', async (req, res) => {
   try {
     const { id } = req.params;

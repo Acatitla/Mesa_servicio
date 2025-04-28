@@ -2,13 +2,15 @@ body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
+  background-color: #f0f0f0;
 }
 
 header {
   background-color: #006400;
   color: white;
   text-align: center;
-  padding: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .logo {
@@ -16,48 +18,150 @@ header {
   vertical-align: middle;
 }
 
+h1 {
+  margin: 0;
+  font-size: 2.5rem;
+}
+
+h2 {
+  font-size: 1.8rem;
+  color: #333;
+  margin-bottom: 10px;
+}
+
 form {
-  margin: 20px;
+  margin: 20px auto;
   padding: 20px;
-  background-color: #f5f5f5;
+  max-width: 600px;
+  background-color: #ffffff;
   border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 form input, form select, form textarea, form button {
   display: block;
   width: 100%;
-  margin-bottom: 10px;
-  padding: 8px;
+  margin-bottom: 15px;
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
 }
 
-#reportes {
-  margin: 20px;
+form select:focus, form input:focus, form textarea:focus {
+  border-color: #006400;
+  outline: none;
+}
+
+form button {
+  background-color: #006400;
+  color: white;
+  border: none;
+  padding: 12px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+}
+
+form button:hover {
+  background-color: #004d00;
+}
+
+form i {
+  margin-right: 10px;
+}
+
+.form-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.form-group {
+  flex: 1;
+  margin-right: 10px;
+}
+
+.form-group:last-child {
+  margin-right: 0;
 }
 
 .reporte {
-  border: 1px solid #ccc;
-  padding: 10px;
-  margin-bottom: 10px;
+  background-color: #fff;
+  border: 1px solid #ddd;
   border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .reporte img {
   width: 100px;
+  height: auto;
   display: block;
   margin-top: 10px;
 }
 
+.reportes-container {
+  margin: 20px;
+}
+
+.reportes-list {
+  margin-top: 20px;
+}
+
+.acciones {
+  text-align: right;
+  margin-bottom: 10px;
+}
+
+.btn-submit {
+  background-color: #006400;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn-submit:hover {
+  background-color: #004d00;
+}
+
+.btn-excel {
+  background-color: #8B0000;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn-excel:hover {
+  background-color: #b30000;
+}
+
 .botones-descarga {
   text-align: center;
-  margin: 20px;
+  margin: 20px 0;
 }
 
 .botones-descarga button {
   background-color: #8B0000;
   color: white;
-  padding: 10px 20px;
+  padding: 12px 20px;
   margin: 5px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.botones-descarga button:hover {
+  background-color: #b30000;
 }
