@@ -1,6 +1,6 @@
 // backend/db.js
-
-import { Pool } from 'pg';
+import pkg from 'pg';
+const { Pool } = pkg;  // Accediendo al Pool a través de pkg
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -38,7 +38,8 @@ const createTable = async () => {
   }
 };
 
-createTable(); // Llamada para crear la tabla si no existe
+// Llamada para crear la tabla si no existe
+createTable();
 
-// Exportar pool para usar en otras partes de la aplicación
+// Exportar el pool para que se use en otras partes del proyecto
 export { pool };

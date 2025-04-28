@@ -6,30 +6,26 @@ import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-import { pool } from './db.js';  // Importa correctamente el pool
+import { pool } from './db.js'; // Asegúrate de que esta conexión esté bien configurada
+import pkg from 'pg';
+const { Pool } = pkg;
 
 dotenv.config();
 
-// Obtener la ruta del archivo actual
 const __filename = fileURLToPath(import.meta.url);
-
-// Obtener el directorio del archivo actual
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Configuración de directorios para Render
 const uploadsDir = path.join(__dirname, 'uploads');
 const publicDir = path.join(__dirname, 'public');
 const dataDir = path.join(__dirname, 'data');
 
-// Asegurar directorios existan
 [uploadsDir, publicDir, dataDir].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-// Verificar si la tabla `reportes` existe y crearla si no
 const createTableQuery = `
   CREATE TABLE IF NOT EXISTS reportes (
     id SERIAL PRIMARY KEY,
@@ -56,15 +52,13 @@ async function createTable() {
   }
 }
 
-createTable(); // Llamada para crear la tabla si no existe
+createTable();
 
-// Middlewares
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use('/uploads', express.static(uploadsDir));
 app.use(express.static(publicDir));
 
-// Configuración de Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => {
@@ -88,7 +82,6 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
 
-// Cargar colonias desde JSON
 let colonias = [];
 try {
   const data = fs.readFileSync(path.join(dataDir, 'colonias.json'), 'utf8');
@@ -98,7 +91,6 @@ try {
   console.error('❌ Error leyendo colonias:', err);
 }
 
-// Rutas
 app.get('/', (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
 });
@@ -107,7 +99,6 @@ app.get('/form-data', (req, res) => {
   try {
     const tiposServicio = ["Luminarias", "Baches", "Banquetas", "Fugas"];
     const origenes = ["Aplicación", "DMU", "Oficio", "Teléfono", "Personal"];
-    
     res.json({
       colonias,
       tiposServicio,
@@ -132,10 +123,7 @@ app.get('/reportes', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('Error al obtener reportes:', error);
-    res.status(500).json({
-      error: 'Error al cargar reportes',
-      details: error.message
-    });
+    res.status(500).json({ error: 'Error al cargar reportes', details: error.message });
   }
 });
 
@@ -151,8 +139,6 @@ app.get('/descargarPDF/:id', async (req, res) => {
     }
 
     const reporte = result.rows[0];
-
-    // Crear un nuevo documento PDF
     const doc = new PDFDocument();
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -160,7 +146,6 @@ app.get('/descargarPDF/:id', async (req, res) => {
 
     doc.pipe(res);
 
-    // Agregar contenido al PDF
     doc.fontSize(16).text('Reporte de Servicio', { align: 'center' });
 
     doc.moveDown();
