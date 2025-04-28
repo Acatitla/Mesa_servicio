@@ -26,30 +26,30 @@ async function cargarDatosFormulario() {
     // Cargar colonias
     const coloniaSelect = document.getElementById('colonia');
     coloniaSelect.innerHTML = '<option value="" disabled selected>Seleccione una colonia...</option>';
-    data.colonias.forEach(c => {
+    data.colonias.forEach(colonia => {
       const option = document.createElement('option');
-      option.value = c.nombre || c;
-      option.textContent = c.nombre || c;
+      option.value = colonia;
+      option.textContent = colonia;
       coloniaSelect.appendChild(option);
     });
 
     // Cargar tipos de servicio
     const tipoServicioSelect = document.getElementById('tipoServicio');
     tipoServicioSelect.innerHTML = '<option value="" disabled selected>Seleccione un tipo...</option>';
-    data.tipos_servicio.forEach(t => {
+    data.tipos_servicio.forEach(tipo => {
       const option = document.createElement('option');
-      option.value = t;
-      option.textContent = t;
+      option.value = tipo;
+      option.textContent = tipo;
       tipoServicioSelect.appendChild(option);
     });
 
     // Cargar orígenes
     const origenSelect = document.getElementById('origen');
     origenSelect.innerHTML = '<option value="" disabled selected>Seleccione un origen...</option>';
-    data.origenes.forEach(o => {
+    data.origenes.forEach(origen => {
       const option = document.createElement('option');
-      option.value = o;
-      option.textContent = o;
+      option.value = origen;
+      option.textContent = origen;
       origenSelect.appendChild(option);
     });
   } catch (error) {
@@ -57,6 +57,8 @@ async function cargarDatosFormulario() {
     mostrarAlerta('Error al cargar datos del formulario', 'error');
   }
 }
+
+window.onload = cargarDatosFormulario;
 
 async function agregarReporte(e) {
   e.preventDefault();
