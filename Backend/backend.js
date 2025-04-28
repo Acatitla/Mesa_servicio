@@ -61,14 +61,14 @@ async function createTable() {
   }
 }
 
-// 📍 Cargar colonias desde archivo JSON
-let colonias = [];
+// 📍 Cargar formulario desde archivo JSON
+let formulario = [];
 try {
-  const data = fs.readFileSync(path.join(__dirname, 'data', 'colonias.json'));
-  colonias = JSON.parse(data);
-  console.log(`✅ Colonias cargadas: ${colonias.length} registros`);
+  const data = fs.readFileSync(path.join(__dirname, 'data', 'formulario.json'));
+  formulario = JSON.parse(data);
+  console.log(`✅ Formulario cargado con ${formulario.length} registros`);
 } catch (error) {
-  console.error('❌ Error cargando colonias:', error);
+  console.error('❌ Error cargando formulario:', error);
 }
 
 // 📍 Rutas
@@ -84,9 +84,9 @@ app.get('/reportes', async (req, res) => {
   }
 });
 
-// 🔵 Obtener colonias
-app.get('/colonias', (req, res) => {
-  res.json(colonias);
+// 🔵 Obtener formulario (antes colonias)
+app.get('/formulario', (req, res) => {
+  res.json(formulario);
 });
 
 // 🔵 Agregar reporte
