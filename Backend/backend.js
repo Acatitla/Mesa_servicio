@@ -6,7 +6,7 @@ import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-import pool from './db.js';  // Cambié la importación de pool aquí
+import { pool } from './db.js';  // Importa correctamente el pool
 
 dotenv.config();
 
@@ -15,8 +15,6 @@ const __filename = fileURLToPath(import.meta.url);
 
 // Obtener el directorio del archivo actual
 const __dirname = path.dirname(__filename);
-
-const { Pool } = pkg;
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -29,12 +27,6 @@ const dataDir = path.join(__dirname, 'data');
 // Asegurar directorios existan
 [uploadsDir, publicDir, dataDir].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-});
-
-// Configuración de PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
 });
 
 // Verificar si la tabla `reportes` existe y crearla si no
