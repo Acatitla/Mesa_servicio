@@ -1,12 +1,12 @@
 import express from 'express';
 import multer from 'multer';
-import pkg from 'pg';
 import path from 'path';
 import fs from 'fs';
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
+import pool from './db.js';  // Cambié la importación de pool aquí
 
 dotenv.config();
 
@@ -147,95 +147,57 @@ app.get('/reportes', async (req, res) => {
   }
 });
 
-app.post('/reportes', upload.single('foto'), async (req, res) => {
-  try {
-    const { 
-      folio, 
-      origen, 
-      telefono, 
-      solicitante, 
-      fecha, 
-      referencias, 
-      colonia, 
-      numeroExterior, 
-      direccion, 
-      tipoServicio 
-    } = req.body;
-
-    if (!origen || !solicitante || !colonia || !direccion || !tipoServicio || !fecha) {
-      return res.status(400).json({ 
-        error: 'Campos obligatorios faltantes',
-        required: ['origen', 'solicitante', 'colonia', 'direccion', 'tipoServicio', 'fecha']
-      });
-    }
-
-    const foto = req.file ? req.file.filename : null;
-    const fechaFormateada = new Date(fecha).toISOString();
-
-    const result = await pool.query(
-      `INSERT INTO reportes (
-        folio, origen, telefono, solicitante, fecha, 
-        referencias, colonia, numero_exterior, direccion, 
-        tipo_servicio, foto
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING id`,
-      [
-        folio || null, 
-        origen, 
-        telefono || null, 
-        solicitante, 
-        fechaFormateada, 
-        referencias || null, 
-        colonia, 
-        numeroExterior || null, 
-        direccion, 
-        tipoServicio, 
-        foto
-      ]
-    );
-
-    res.json({ 
-      success: true,
-      id: result.rows[0].id
-    });
-  } catch (error) {
-    console.error('Error al guardar reporte:', error);
-    res.status(500).json({ 
-      error: 'Error al guardar reporte',
-      details: error.message
-    });
-  }
-});
-
-app.delete('/reportes/:id', async (req, res) => {
+// Ruta para generar un reporte PDF
+app.get('/descargarPDF/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { username, password } = req.body;
 
-    if (username !== process.env.ADMIN_USER || password !== process.env.ADMIN_PASS) {
-      return res.status(401).json({ error: 'Credenciales incorrectas' });
-    }
+    const result = await pool.query('SELECT * FROM reportes WHERE id = $1', [id]);
 
-    const result = await pool.query('DELETE FROM reportes WHERE id = $1 RETURNING *', [id]);
-    
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Reporte no encontrado' });
     }
 
-    // Eliminar la foto asociada si existe
     const reporte = result.rows[0];
+
+    // Crear un nuevo documento PDF
+    const doc = new PDFDocument();
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=reporte-${reporte.id}.pdf`);
+
+    doc.pipe(res);
+
+    // Agregar contenido al PDF
+    doc.fontSize(16).text('Reporte de Servicio', { align: 'center' });
+
+    doc.moveDown();
+    doc.fontSize(12).text(`Folio: ${reporte.folio}`);
+    doc.text(`Origen: ${reporte.origen}`);
+    doc.text(`Solicitante: ${reporte.solicitante}`);
+    doc.text(`Fecha: ${new Date(reporte.fecha).toLocaleString()}`);
+    doc.text(`Colonia: ${reporte.colonia}`);
+    doc.text(`Dirección: ${reporte.direccion}`);
+    doc.text(`Tipo de Servicio: ${reporte.tipo_servicio}`);
+    doc.text(`Referencia: ${reporte.referencias}`);
+
     if (reporte.foto) {
       const fotoPath = path.join(uploadsDir, reporte.foto);
-      if (fs.existsSync(fotoPath)) fs.unlinkSync(fotoPath);
+      if (fs.existsSync(fotoPath)) {
+        doc.moveDown().image(fotoPath, { width: 100 });
+      } else {
+        doc.moveDown().text('Foto no disponible');
+      }
     }
 
-    res.json({ success: true });
+    doc.end();
   } catch (error) {
-    console.error('Error al borrar reporte:', error);
-    res.status(500).json({ error: 'Error al borrar reporte' });
+    console.error('Error generando PDF:', error);
+    res.status(500).json({ error: 'Error al generar archivo PDF' });
   }
 });
 
+// Ruta para generar archivo Excel
 app.get('/descargarExcel', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -251,7 +213,6 @@ app.get('/descargarExcel', async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Reportes');
 
-    // Formato de columnas
     worksheet.columns = [
       { header: 'ID', key: 'id', width: 10 },
       { header: 'Folio', key: 'folio', width: 15 },
@@ -267,7 +228,6 @@ app.get('/descargarExcel', async (req, res) => {
       { header: 'Foto', key: 'foto', width: 30 }
     ];
 
-    // Añadir datos
     reportes.forEach(reporte => {
       worksheet.addRow({
         ...reporte,
@@ -275,7 +235,6 @@ app.get('/descargarExcel', async (req, res) => {
       });
     });
 
-    // Estilo para la primera fila (encabezados)
     worksheet.getRow(1).eachCell(cell => {
       cell.font = { bold: true };
       cell.fill = {
@@ -291,12 +250,12 @@ app.get('/descargarExcel', async (req, res) => {
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
-    console.error('Error generando Excel:', error);
-    res.status(500).json({ error: 'Error generando archivo Excel' });
+    console.error('Error generando archivo Excel:', error);
+    res.status(500).json({ error: 'Error al generar archivo Excel' });
   }
 });
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  console.log(`✅ Servidor corriendo en el puerto ${PORT}`);
 });
