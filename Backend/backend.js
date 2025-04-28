@@ -6,9 +6,8 @@ import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-import { pool } from './db.js'; // Conexión PostgreSQL
-import pkg from 'pg';
-const { Pool } = require('pg'); // Accediendo al Pool a través de pkg
+import pkg from 'pg';  // Cambio aquí para importar todo el paquete 'pg'
+const { Pool } = pkg;  // Aquí extraemos 'Pool' del paquete importado
 
 dotenv.config();
 
@@ -54,7 +53,6 @@ async function createTable() {
 
 // Llamar a la función para crear la tabla al iniciar el backend
 createTable();
-
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
