@@ -114,9 +114,14 @@ async function cargarReportes() {
     contenedor.innerHTML = '<div class="loading">Cargando reportes...</div>';
     
     const response = await fetch('/reportes');
-    if (!response.ok) throw new Error('Error al cargar reportes');
+    console.log('Respuesta del servidor:', response);  // Verifica la respuesta completa
+
+    if (!response.ok) {
+      throw new Error('Error al cargar reportes');
+    }
     
     const data = await response.json();
+    console.log('Datos recibidos:', data);  // Verifica los datos recibidos
 
     if (data.length === 0) {
       contenedor.innerHTML = '<div class="no-data">No hay reportes registrados</div>';
@@ -157,7 +162,7 @@ async function cargarReportes() {
     });
   } catch (error) {
     console.error('Error al cargar reportes:', error);
-    contenedor.innerHTML = `
+    contenedor.innerHTML = ` 
       <div class="error">
         <p>${error.message}</p>
         <button onclick="cargarReportes()" class="btn-reintentar">
@@ -167,6 +172,7 @@ async function cargarReportes() {
     `;
   }
 }
+
 
 async function borrarReporte(id) {
   if (!confirm('¿Estás seguro de eliminar este reporte?')) return;
