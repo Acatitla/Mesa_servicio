@@ -4,8 +4,7 @@
   "main": "backend.js",
   "scripts": {
     "start": "node backend.js",
-    "dev": "nodemon backend.js",
-    "type": "module"
+    "dev": "nodemon backend.js"
   },
   "dependencies": {
     "dotenv": "^16.0.3",
@@ -17,5 +16,6 @@
   },
   "devDependencies": {
     "nodemon": "^2.0.22"
-  }
- }
+  },
+  "type": "module"
+}

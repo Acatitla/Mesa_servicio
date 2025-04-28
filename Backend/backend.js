@@ -6,8 +6,15 @@ import fs from 'fs';
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
+
+// Obtener la ruta del archivo actual
+const __filename = fileURLToPath(import.meta.url);
+
+// Obtener el directorio del archivo actual
+const __dirname = path.dirname(__filename);
 
 const { Pool } = pkg;
 
@@ -278,51 +285,33 @@ app.get('/descargarPDF/:id', async (req, res) => {
 
     doc.pipe(res);
 
-    // Encabezado
-    doc.fontSize(20).text('Reporte de Servicio', { align: 'center' });
-    doc.moveDown();
+    doc.fontSize(16).text(`Reporte #${reporte.id}`, { align: 'center' });
+    doc.fontSize(12).text(`Fecha: ${new Date(reporte.fecha).toLocaleString()}`, { align: 'left' });
+    doc.text(`Folio: ${reporte.folio}`, { align: 'left' });
+    doc.text(`Solicitante: ${reporte.solicitante}`, { align: 'left' });
+    doc.text(`Colonia: ${reporte.colonia}`, { align: 'left' });
+    doc.text(`Dirección: ${reporte.direccion}`, { align: 'left' });
+    doc.text(`Tipo de Servicio: ${reporte.tipo_servicio}`, { align: 'left' });
 
-    // Contenido
-    const campos = [
-      { label: 'Folio', value: reporte.folio },
-      { label: 'Origen', value: reporte.origen },
-      { label: 'Solicitante', value: reporte.solicitante },
-      { label: 'Fecha', value: new Date(reporte.fecha).toLocaleString() },
-      { label: 'Teléfono', value: reporte.telefono },
-      { label: 'Referencias', value: reporte.referencias },
-      { label: 'Colonia', value: reporte.colonia },
-      { label: 'Dirección', value: `${reporte.direccion} ${reporte.numero_exterior || ''}` },
-      { label: 'Tipo de Servicio', value: reporte.tipo_servicio }
-    ];
-
-    campos.forEach(campo => {
-      if (campo.value) {
-        doc.fontSize(12).text(`${campo.label}: ${campo.value}`);
-        doc.moveDown(0.5);
-      }
-    });
-
-    // Imagen si existe
     if (reporte.foto) {
       const imagePath = path.join(uploadsDir, reporte.foto);
       if (fs.existsSync(imagePath)) {
-        doc.addPage();
-        doc.text('Foto adjunta:', { align: 'center' });
-        doc.image(imagePath, { 
-          fit: [400, 400], 
-          align: 'center', 
-          valign: 'center' 
-        });
+        doc.addPage()
+           .image(imagePath, {
+             fit: [500, 500],
+             align: 'center',
+             valign: 'center'
+           });
       }
     }
 
     doc.end();
   } catch (error) {
-    console.error('Error al generar PDF:', error);
-    res.status(500).send('Error al generar PDF');
+    console.error('Error generando PDF:', error);
+    res.status(500).send('Error generando PDF');
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor activo en http://localhost:${PORT}`);
+  console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
