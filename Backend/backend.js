@@ -6,9 +6,9 @@ import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-import { pool } from './db.js'; // Asegúrate de que esta conexión esté bien configurada
+import { pool } from './db.js'; // Conexión PostgreSQL
 import pkg from 'pg';
-const { Pool } = pkg;
+const { Pool } = require('pg'); // Accediendo al Pool a través de pkg
 
 dotenv.config();
 
@@ -33,7 +33,7 @@ const createTableQuery = `
     origen TEXT,
     telefono TEXT,
     solicitante TEXT,
-    fecha TIMESTAMP,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     referencias TEXT,
     colonia TEXT,
     numero_exterior TEXT,
@@ -45,14 +45,16 @@ const createTableQuery = `
 
 async function createTable() {
   try {
-    await pool.query(createTableQuery);
+    await pool.query(createTableQuery);  // Ejecutar la consulta para crear la tabla
     console.log('✅ Tabla "reportes" creada o ya existe');
   } catch (err) {
     console.error('❌ Error creando la tabla "reportes":', err);
   }
 }
 
+// Llamar a la función para crear la tabla al iniciar el backend
 createTable();
+
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -120,7 +122,14 @@ app.get('/reportes', async (req, res) => {
       FROM reportes 
       ORDER BY fecha DESC
     `);
-    res.json(result.rows);
+
+    // Convertir la fecha en cada reporte a un objeto Date
+    const reportes = result.rows.map(reporte => ({
+      ...reporte,
+      fecha: new Date(reporte.fecha).toLocaleString() // Convierte a formato legible
+    }));
+
+    res.json(reportes);
   } catch (error) {
     console.error('Error al obtener reportes:', error);
     res.status(500).json({ error: 'Error al cargar reportes', details: error.message });

@@ -1,45 +1,14 @@
-// backend/db.js
-import pkg from 'pg';
-const { Pool } = pkg;  // Accediendo al Pool a través de pkg
-import dotenv from 'dotenv';
+import { Pool } from 'pg';  // Importar el Pool para trabajar con PostgreSQL
+import dotenv from 'dotenv'; // Importar dotenv para cargar las variables de entorno
 
-dotenv.config();
+dotenv.config(); // Cargar variables del archivo .env
 
-// Configuración de la conexión a PostgreSQL
+// Configurar el pool de conexiones a PostgreSQL usando la URL de la base de datos en Render
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  connectionString: process.env.DATABASE_URL,  // Usar la variable de entorno con la URL de conexión
+  ssl: {
+    rejectUnauthorized: false  // Requerido por Render para habilitar conexiones seguras
+  }
 });
 
-// Función para verificar si la tabla existe y crearla si no
-const createTable = async () => {
-  const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS reportes (
-      id SERIAL PRIMARY KEY,
-      folio TEXT,
-      origen TEXT,
-      telefono TEXT,
-      solicitante TEXT,
-      fecha TIMESTAMP,
-      referencias TEXT,
-      colonia TEXT,
-      numero_exterior TEXT,
-      direccion TEXT,
-      tipo_servicio TEXT,
-      foto TEXT
-    );
-  `;
-
-  try {
-    await pool.query(createTableQuery);
-    console.log('✅ Tabla "reportes" creada o ya existe');
-  } catch (err) {
-    console.error('❌ Error creando la tabla "reportes":', err);
-  }
-};
-
-// Llamada para crear la tabla si no existe
-createTable();
-
-// Exportar el pool para que se use en otras partes del proyecto
-export { pool };
+export { pool }; // Exportar el pool para usarlo en otros archivos
