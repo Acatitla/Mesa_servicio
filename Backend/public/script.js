@@ -34,13 +34,13 @@ async function cargarDatosFormulario() {
     });
 
     // Cargar tipos de servicio
-    const tipoServicioSelect = document.getElementById('tipoServicio');
-    tipoServicioSelect.innerHTML = '<option value="" disabled selected>Seleccione un tipo...</option>';
-    data.tipos_servicio.forEach(tipo => {
+    const servicioSelect = document.getElementById('tipoServicio');
+    servicioSelect.innerHTML = '<option value="" disabled selected>Seleccione un tipo...</option>';
+    data.servicios.forEach(tipo => {
       const option = document.createElement('option');
       option.value = tipo;
       option.textContent = tipo;
-      tipoServicioSelect.appendChild(option);
+      servicioSelect.appendChild(option);
     });
 
     // Cargar orígenes

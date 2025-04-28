@@ -9,7 +9,7 @@
 </head>
 <body>
   <header>
-    <img src="/data/img/gam.jpeg" alt="Logo GAM" class="logo">
+    <img src="/img/gam.jpeg" alt="Logo GAM" class="logo">
     <h1>Mesa de Servicio</h1>
   </header>
 
@@ -95,46 +95,5 @@
   </footer>
 
   <script src="script.js"></script>
-  <script>
-    // Cargar los datos del formulario dinámicamente desde el backend
-    async function cargarDatosFormulario() {
-      try {
-        const res = await fetch('/form-data');
-        const data = await res.json();
-
-        // Cargar los tipos de servicio
-        const tipoServicioSelect = document.getElementById('tipoServicio');
-        data.tipos_servicio.forEach(tipo => {
-          const option = document.createElement('option');
-          option.value = tipo;
-          option.textContent = tipo;
-          tipoServicioSelect.appendChild(option);
-        });
-
-        // Cargar las colonias
-        const coloniaSelect = document.getElementById('colonia');
-        data.colonias.forEach(colonia => {
-          const option = document.createElement('option');
-          option.value = colonia;
-          option.textContent = colonia;
-          coloniaSelect.appendChild(option);
-        });
-
-        // Cargar los orígenes
-        const origenSelect = document.getElementById('origen');
-        data.origenes.forEach(origen => {
-          const option = document.createElement('option');
-          option.value = origen;
-          option.textContent = origen;
-          origenSelect.appendChild(option);
-        });
-      } catch (error) {
-        console.error('Error al cargar los datos del formulario:', error);
-      }
-    }
-
-    // Llamar a la función para cargar los datos cuando la página se cargue
-    window.onload = cargarDatosFormulario;
-  </script>
 </body>
 </html>
