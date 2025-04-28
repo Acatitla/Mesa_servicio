@@ -1,147 +1,292 @@
+// backend/backend.js
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const { Pool } = require('pg');
 const fs = require('fs');
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
-const { Pool } = require('pg');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
-// Configurar Multer
+// Configuración de conexión a PostgreSQL
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+// Configuración de directorios
+const uploadsDir = path.join(__dirname, 'uploads');
+const publicDir = path.join(__dirname, 'public');
+const dataDir = path.join(__dirname, 'data');
+
+// Asegurar que existan los directorios
+[uploadsDir, publicDir, dataDir].forEach(dir => {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+});
+
+// Middlewares
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use('/uploads', express.static(uploadsDir));
+app.use(express.static(publicDir));
+
+// Configuración de Multer para subir imágenes
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, 'public', 'uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
+  destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
   }
 });
-const upload = multer({ storage });
 
-// Conexion PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+const upload = multer({ 
+  storage,
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = filetypes.test(file.mimetype);
+    
+    if (extname && mimetype) return cb(null, true);
+    cb(new Error('Error: Solo imágenes (JPEG, JPG, PNG, GIF) permitidas!'));
+  },
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
 
-// Middlewares
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use('/public', express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
+// Cargar colonias desde JSON
+let colonias = [];
+try {
+  const data = fs.readFileSync(path.join(dataDir, 'colonias.json'), 'utf8');
+  colonias = JSON.parse(data);
+  console.log(`✅ Colonias cargadas: ${colonias.length} registros`);
+} catch (err) {
+  console.error('❌ Error leyendo colonias:', err);
+  process.exit(1);
+}
 
 // Rutas
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Obtener colonias
-app.get('/colonias', (req, res) => {
-  const colonias = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'colonias.json')));
-  res.json(colonias);
+app.get('/', async (req, res) => {
+  try {
+    res.sendFile(path.join(publicDir, 'index.html'));
+  } catch (error) {
+    console.error('Error al cargar página:', error);
+    res.status(500).send('Error al cargar la página');
+  }
 });
 
 // Obtener reportes
 app.get('/reportes', async (req, res) => {
-  const result = await pool.query('SELECT * FROM reportes ORDER BY id DESC');
-  res.json(result.rows);
+  try {
+    const result = await pool.query('SELECT * FROM reportes ORDER BY fecha DESC');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error al obtener reportes:', error);
+    res.status(500).json({ error: 'Error al obtener reportes' });
+  }
 });
 
-// Agregar reporte
+// Obtener datos para formulario
+app.get('/form-data', async (req, res) => {
+  try {
+    const tiposServicio = ["Luminarias", "Baches", "Banquetas", "Fugas"];
+    const origenes = ["Aplicación", "DMU", "Oficio", "Teléfono", "Personal"];
+    
+    res.json({
+      colonias,
+      tiposServicio,
+      origenes
+    });
+  } catch (error) {
+    console.error('Error obteniendo datos de formulario:', error);
+    res.status(500).json({ error: 'Error al obtener datos' });
+  }
+});
+
+// Enviar nuevo reporte
 app.post('/reportes', upload.single('foto'), async (req, res) => {
-  const {
-    tipoServicio, direccion, numeroExterior, colonia, fecha,
-    origen, folio, referencias, telefono, solicitante
-  } = req.body;
+  try {
+    const { 
+      folio, 
+      origen, 
+      telefono, 
+      solicitante, 
+      fecha, 
+      referencias, 
+      colonia, 
+      numeroExterior, 
+      direccion, 
+      tipoServicio 
+    } = req.body;
 
-  const foto = req.file ? req.file.filename : null;
+    // Validación básica
+    if (!origen || !solicitante || !colonia || !direccion || !tipoServicio || !fecha) {
+      return res.status(400).json({ error: 'Faltan campos obligatorios' });
+    }
 
-  await pool.query(`
-    INSERT INTO reportes
-    (tipo_servicio, direccion, numero_exterior, colonia, fecha, origen, folio, referencias, telefono, solicitante, foto)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-  `, [tipoServicio, direccion, numeroExterior, colonia, fecha, origen, folio, referencias, telefono, solicitante, foto]);
+    const foto = req.file ? req.file.filename : null;
 
-  res.sendStatus(201);
+    await pool.query(
+      `INSERT INTO reportes (
+        folio, origen, telefono, solicitante, fecha, 
+        referencias, colonia, numero_exterior, direccion, 
+        tipo_servicio, foto
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [
+        folio || null, 
+        origen, 
+        telefono || null, 
+        solicitante, 
+        fecha, 
+        referencias || null, 
+        colonia, 
+        numeroExterior || null, 
+        direccion, 
+        tipoServicio, 
+        foto
+      ]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error al guardar reporte:', error);
+    res.status(500).json({ error: 'Error al guardar reporte' });
+  }
 });
 
 // Borrar reporte
 app.delete('/reportes/:id', async (req, res) => {
-  const { username, password } = req.body;
-  const { id } = req.params;
+  try {
+    const { id } = req.params;
+    const { username, password } = req.body;
 
-  if (username === 'oro4' && password === 'luminarias') {
-    await pool.query('DELETE FROM reportes WHERE id = $1', [id]);
-    res.sendStatus(200);
-  } else {
-    res.status(401).json({ error: 'No autorizado' });
+    // Validación básica de autenticación
+    if (username !== process.env.ADMIN_USER || password !== process.env.ADMIN_PASS) {
+      return res.status(401).json({ error: 'Credenciales incorrectas' });
+    }
+
+    const result = await pool.query('DELETE FROM reportes WHERE id = $1 RETURNING *', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Reporte no encontrado' });
+    }
+
+    // Eliminar la foto asociada si existe
+    const reporte = result.rows[0];
+    if (reporte.foto) {
+      const fotoPath = path.join(uploadsDir, reporte.foto);
+      if (fs.existsSync(fotoPath)) fs.unlinkSync(fotoPath);
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error al borrar reporte:', error);
+    res.status(500).json({ error: 'Error al borrar reporte' });
   }
 });
 
 // Descargar Excel
 app.get('/descargarExcel', async (req, res) => {
-  const result = await pool.query('SELECT * FROM reportes');
-  const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet('Reportes');
+  try {
+    const result = await pool.query('SELECT * FROM reportes ORDER BY fecha DESC');
+    const reportes = result.rows;
 
-  worksheet.columns = [
-    { header: 'ID', key: 'id', width: 5 },
-    { header: 'Servicio', key: 'tipo_servicio', width: 20 },
-    { header: 'Dirección', key: 'direccion', width: 30 },
-    { header: 'Número Exterior', key: 'numero_exterior', width: 15 },
-    { header: 'Colonia', key: 'colonia', width: 25 },
-    { header: 'Fecha', key: 'fecha', width: 15 },
-    { header: 'Origen', key: 'origen', width: 15 },
-    { header: 'Folio', key: 'folio', width: 15 },
-    { header: 'Referencias', key: 'referencias', width: 30 },
-    { header: 'Teléfono', key: 'telefono', width: 20 },
-    { header: 'Solicitante', key: 'solicitante', width: 20 }
-  ];
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Reportes');
 
-  result.rows.forEach(r => worksheet.addRow(r));
+    worksheet.columns = [
+      { header: 'ID', key: 'id', width: 10 },
+      { header: 'Folio', key: 'folio', width: 15 },
+      { header: 'Origen', key: 'origen', width: 15 },
+      { header: 'Teléfono', key: 'telefono', width: 15 },
+      { header: 'Solicitante', key: 'solicitante', width: 20 },
+      { header: 'Fecha', key: 'fecha', width: 20 },
+      { header: 'Referencias', key: 'referencias', width: 30 },
+      { header: 'Colonia', key: 'colonia', width: 20 },
+      { header: 'Número Exterior', key: 'numero_exterior', width: 15 },
+      { header: 'Dirección', key: 'direccion', width: 30 },
+      { header: 'Tipo Servicio', key: 'tipo_servicio', width: 20 },
+      { header: 'Foto', key: 'foto', width: 30 }
+    ];
 
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', 'attachment; filename=reportes.xlsx');
+    reportes.forEach(reporte => worksheet.addRow(reporte));
 
-  await workbook.xlsx.write(res);
-  res.end();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=reportes.xlsx');
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error al generar Excel:', error);
+    res.status(500).send('Error al generar Excel');
+  }
 });
 
-// Descargar PDF
-app.get('/descargarPDF', async (req, res) => {
-  const result = await pool.query('SELECT * FROM reportes');
-  const doc = new PDFDocument();
-  
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', 'attachment; filename=reportes.pdf');
+// Descargar PDF individual
+app.get('/descargarPDF/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('SELECT * FROM reportes WHERE id = $1', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).send('Reporte no encontrado');
+    }
 
-  doc.pipe(res);
+    const reporte = result.rows[0];
+    const doc = new PDFDocument();
+    const filename = `reporte_${id}.pdf`;
 
-  result.rows.forEach(r => {
-    doc.fontSize(12).text(`Servicio: ${r.tipo_servicio}`);
-    doc.text(`Dirección: ${r.direccion} #${r.numero_exterior}`);
-    doc.text(`Colonia: ${r.colonia}`);
-    doc.text(`Fecha: ${r.fecha.toISOString().split('T')[0]}`);
-    if (r.foto) {
-      const imagePath = path.join(__dirname, 'public', 'uploads', r.foto);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/pdf');
+
+    doc.pipe(res);
+
+    // Encabezado
+    doc.fontSize(20).text('Reporte de Servicio', { align: 'center' });
+    doc.moveDown();
+
+    // Contenido
+    const campos = [
+      { label: 'Folio', value: reporte.folio },
+      { label: 'Origen', value: reporte.origen },
+      { label: 'Solicitante', value: reporte.solicitante },
+      { label: 'Fecha', value: new Date(reporte.fecha).toLocaleString() },
+      { label: 'Teléfono', value: reporte.telefono },
+      { label: 'Referencias', value: reporte.referencias },
+      { label: 'Colonia', value: reporte.colonia },
+      { label: 'Dirección', value: `${reporte.direccion} ${reporte.numero_exterior || ''}` },
+      { label: 'Tipo de Servicio', value: reporte.tipo_servicio }
+    ];
+
+    campos.forEach(campo => {
+      if (campo.value) {
+        doc.fontSize(12).text(`${campo.label}: ${campo.value}`);
+        doc.moveDown(0.5);
+      }
+    });
+
+    // Imagen si existe
+    if (reporte.foto) {
+      const imagePath = path.join(uploadsDir, reporte.foto);
       if (fs.existsSync(imagePath)) {
-        doc.image(imagePath, { width: 100 });
+        doc.addPage();
+        doc.text('Foto adjunta:', { align: 'center' });
+        doc.image(imagePath, { 
+          fit: [400, 400], 
+          align: 'center', 
+          valign: 'center' 
+        });
       }
     }
-    doc.moveDown();
-    doc.moveDown();
-  });
 
-  doc.end();
+    doc.end();
+  } catch (error) {
+    console.error('Error al generar PDF:', error);
+    res.status(500).send('Error al generar PDF');
+  }
 });
 
-// Levantar servidor
-app.listen(port, () => {
-  console.log(`Servidor en http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(`Servidor activo en http://localhost:${PORT}`);
 });
