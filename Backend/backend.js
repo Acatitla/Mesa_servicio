@@ -111,9 +111,9 @@ app.get('/reportes', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('Error al obtener reportes:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al cargar reportes',
-      details: error.message 
+      details: error.message
     });
   }
 });
