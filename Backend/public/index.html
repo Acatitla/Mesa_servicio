@@ -18,24 +18,24 @@
       <h2><i class="fas fa-plus-circle"></i> Nuevo Reporte</h2>
       <form id="formulario" enctype="multipart/form-data">
         <div class="form-group">
-          <label for="tipoServicio"><i class="fas fa-tools"></i> Tipo de Servicio *</label>
-          <select name="tipoServicio" id="tipoServicio" required>
+          <label for="servicios"><i class="fas fa-tools"></i> Tipo de Servicio *</label>
+          <select name="servicios" id="servicios" required>
             <option value="" disabled selected>Seleccione...</option>
             <!-- Las opciones de tipo de servicio se cargarán dinámicamente -->
           </select>
         </div>
-
+      
         <div class="form-group">
           <label for="direccion"><i class="fas fa-map-marker-alt"></i> Dirección *</label>
           <input type="text" name="direccion" id="direccion" required>
         </div>
-
+      
         <div class="form-row">
           <div class="form-group">
             <label for="numeroExterior"><i class="fas fa-home"></i> Número Exterior</label>
             <input type="text" name="numeroExterior" id="numeroExterior">
           </div>
-
+      
           <div class="form-group">
             <label for="colonia"><i class="fas fa-city"></i> Colonia *</label>
             <select name="colonia" id="colonia" required>
@@ -44,12 +44,12 @@
             </select>
           </div>
         </div>
-
+      
         <div class="form-group">
           <label for="fecha"><i class="far fa-calendar-alt"></i> Fecha y Hora *</label>
           <input type="datetime-local" name="fecha" id="fecha" required>
         </div>
-
+      
         <div class="form-group">
           <label for="origen"><i class="fas fa-source"></i> Origen *</label>
           <select name="origen" id="origen" required>
@@ -57,29 +57,29 @@
             <!-- Las opciones de origen se cargarán dinámicamente -->
           </select>
         </div>
-
+      
         <div class="form-group">
           <label for="folio"><i class="fas fa-file-alt"></i> Folio</label>
           <input type="text" name="folio" id="folio">
         </div>
-
+      
         <div class="form-group">
           <label for="referencias"><i class="fas fa-info-circle"></i> Referencias</label>
           <textarea name="referencias" id="referencias" rows="3"></textarea>
         </div>
-
+      
         <div class="form-group">
           <label for="telefono"><i class="fas fa-phone"></i> Teléfono</label>
           <input type="text" name="telefono" id="telefono">
         </div>
-
+      
         <div class="form-group">
           <label for="foto"><i class="fas fa-image"></i> Foto</label>
           <input type="file" name="foto" id="foto">
         </div>
-
+      
         <button type="submit" class="btn-submit"><i class="fas fa-save"></i> Guardar Reporte</button>
-      </form>
+      </form>      
     </section>
 
     <section class="reportes-container">

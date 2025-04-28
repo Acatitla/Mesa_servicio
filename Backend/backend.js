@@ -10,6 +10,8 @@ import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import { pool } from './db.js';
 
+
+
 const app = express();
 const PORT = process.env.PORT || 10000;
 
@@ -44,15 +46,15 @@ const upload = multer({ storage });
 
 app.get('/formulario', async (req, res) => {
   try {
-    const [colonias, tipos_servicio, origenes] = await Promise.all([
+    const [colonias, servicios, origenes] = await Promise.all([
       pool.query('SELECT nombre FROM colonias ORDER BY nombre'),
-      pool.query('SELECT nombre FROM tipos_servicio ORDER BY nombre'),
+      pool.query('SELECT nombre FROM servicios ORDER BY nombre'),
       pool.query('SELECT nombre FROM origenes ORDER BY nombre')
     ]);
 
     res.json({
       colonias: colonias.rows.map(c => c.nombre),
-      tipos_servicio: tipos_servicio.rows.map(t => t.nombre),
+      servicios: servicios.rows.map(t => t.nombre), // Cambié 'tipos_servicio' a 'servicios'
       origenes: origenes.rows.map(o => o.nombre)
     });
   } catch (error) {
@@ -70,7 +72,7 @@ app.post('/agregar-reporte', upload.single('foto'), async (req, res) => {
       INSERT INTO reportes (tipo_servicio, solicitante, origen, colonia, direccion, numero_exterior, telefono, referencias, fecha, foto)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING id
-    `, [tipoServicio, solicitante, origen, colonia, direccion, numero_exterior, telefono, referencias, fecha, foto]);
+    `, [servicios, solicitante, origen, colonia, direccion, numero_exterior, telefono, referencias, fecha, foto]); // 'tipoServicio' debe coincidir
 
     res.status(201).json({ id: result.rows[0].id });
   } catch (error) {
@@ -79,15 +81,6 @@ app.post('/agregar-reporte', upload.single('foto'), async (req, res) => {
   }
 });
 
-app.get('/reportes', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM reportes ORDER BY fecha DESC');
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Error al cargar reportes:', error);
-    res.status(500).json({ error: 'Error al cargar reportes' });
-  }
-});
 
 app.delete('/eliminar-reporte/:id', async (req, res) => {
   const { id } = req.params;

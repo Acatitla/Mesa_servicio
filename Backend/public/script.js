@@ -18,14 +18,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function cargarDatosFormulario() {
   try {
-    const response = await fetch('/formulario');
-    if (!response.ok) throw new Error('Error al cargar datos del formulario');
+    const res = await fetch('/formulario');
+    const data = await res.json();
 
-    const data = await response.json();
+    // Cargar los servicios
+    const tipoServicioSelect = document.getElementById('servicios'); // Cambié 'tipoServicio' a 'servicios'
+    data.servicios.forEach(servicio => {
+      const option = document.createElement('option');
+      option.value = servicio;
+      option.textContent = servicio;
+      tipoServicioSelect.appendChild(option);
+    });
 
-    // Cargar colonias
+    // Cargar las colonias
     const coloniaSelect = document.getElementById('colonia');
-    coloniaSelect.innerHTML = '<option value="" disabled selected>Seleccione una colonia...</option>';
     data.colonias.forEach(colonia => {
       const option = document.createElement('option');
       option.value = colonia;
@@ -33,19 +39,8 @@ async function cargarDatosFormulario() {
       coloniaSelect.appendChild(option);
     });
 
-    // Cargar tipos de servicio
-    const servicioSelect = document.getElementById('tipoServicio');
-    servicioSelect.innerHTML = '<option value="" disabled selected>Seleccione un tipo...</option>';
-    data.servicios.forEach(tipo => {
-      const option = document.createElement('option');
-      option.value = tipo;
-      option.textContent = tipo;
-      servicioSelect.appendChild(option);
-    });
-
-    // Cargar orígenes
+    // Cargar los orígenes
     const origenSelect = document.getElementById('origen');
-    origenSelect.innerHTML = '<option value="" disabled selected>Seleccione un origen...</option>';
     data.origenes.forEach(origen => {
       const option = document.createElement('option');
       option.value = origen;
@@ -53,11 +48,11 @@ async function cargarDatosFormulario() {
       origenSelect.appendChild(option);
     });
   } catch (error) {
-    console.error('Error cargando datos del formulario:', error);
-    mostrarAlerta('Error al cargar datos del formulario', 'error');
+    console.error('Error al cargar los datos del formulario:', error);
   }
 }
 
+// Llamar a la función para cargar los datos cuando la página se cargue
 window.onload = cargarDatosFormulario;
 
 async function agregarReporte(e) {
