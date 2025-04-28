@@ -6,8 +6,8 @@ import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-import pkg from 'pg';  // Cambio aquí para importar todo el paquete 'pg'
-const { Pool } = pkg;  // Aquí extraemos 'Pool' del paquete importado
+import pkg from 'pg'; // Importamos 'pg' correctamente
+const { Pool } = pkg;  // Usamos Pool para la conexión a PostgreSQL
 
 dotenv.config();
 
@@ -23,6 +23,14 @@ const dataDir = path.join(__dirname, 'data');
 
 [uploadsDir, publicDir, dataDir].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+});
+
+// Configuración de la base de datos PostgreSQL
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,  // Usamos la variable de entorno para la conexión
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 const createTableQuery = `
